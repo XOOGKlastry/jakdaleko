@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
+<title>Jak daleko? · piesza odległość do usług, sklepów i transportu</title>
+<meta name="description" content="Mapa wszystkich budynków mieszkalnych w Polsce z pieszą odległością po drogach do najbliższego paczkomatu, przychodni, szkoły, przystanku, sklepu i innych – z dowolnym łączeniem sieci, wyszukiwarką adresów i raportem dla budynku.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%23a50f7e'/><circle cx='16' cy='16' r='5' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lib/maplibre-gl.css">
+<script src="lib/maplibre-gl.js"></script>
+<script src="lib/deck.min.js"></script>
+<style>
+:root{--bg:#fff;--bg2:#f4f5f7;--bg3:#eceef2;--fg:#111827;--mut:#6b7280;--line:#e5e7eb;--acc:#a50f7e;--acc2:#fdf2f8;--shadow:0 10px 30px rgba(17,24,39,.14),0 2px 6px rgba(17,24,39,.06)}
+.dark{--bg:#15171c;--bg2:#1f222a;--bg3:#272b35;--fg:#e5e7eb;--mut:#9ca3af;--line:#2b2f38;--acc:#e45f98;--acc2:#3a1d2e;--shadow:0 10px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}[hidden]{display:none!important}
+#map{position:absolute;inset:0;background:#e9ecef}.dark #map{background:#0e0f12}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--acc),#f472b6);z-index:50;transition:width .25s ease,opacity .4s ease;opacity:0;box-shadow:0 0 8px rgba(165,15,126,.5)}
+#bar.on{opacity:1}
+#panel{position:absolute;top:16px;left:16px;bottom:16px;width:404px;background:var(--bg);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;z-index:5}
+.grab{display:none}
+.pickbtn{display:none}
+.stick{padding-top:12px}.stick+.sec{padding-top:0}
+#picker{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);display:none}#picker.on{display:block}
+#picker .pbox{position:absolute;top:8vh;left:50%;transform:translateX(-50%);width:520px;max-width:96vw;max-height:84vh;background:var(--bg);border-radius:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.ph{display:flex;gap:8px;padding:12px 12px 6px;flex:none}.ph input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:11px;padding:11px 12px;font:15px Inter,system-ui;outline:none}
+.ph button{border:0;background:var(--acc);color:#fff;font:600 14px Inter,system-ui;border-radius:11px;padding:0 16px;cursor:pointer}
+.pinfo{font-size:12px;color:var(--mut);padding:2px 14px 4px;flex:none}
+.ptabs{display:flex;gap:6px;overflow-x:auto;padding:4px 12px 8px;flex:none;scrollbar-width:none}.ptabs::-webkit-scrollbar{display:none}
+.ptabs button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);font:500 12.5px Inter,system-ui;padding:6px 11px;border-radius:999px;white-space:nowrap;cursor:pointer}
+#plist{overflow-y:auto;padding:0 12px 16px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1 1 auto;min-height:0}
+#plist .chip.off{opacity:.4}
+.rc{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.mini{border:1px solid var(--line);background:var(--bg2);color:var(--fg);font:600 11.5px Inter,system-ui;padding:4px 9px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.mini.near{border-color:#059669;color:#059669;background:rgba(5,150,105,.09)}.dark .mini.near{border-color:#34d399;color:#34d399}
+.mini.opt{border-style:dashed;color:var(--mut)}
+.slh button.t{border:0;background:none;color:inherit;font:inherit;padding:0;cursor:pointer;text-align:left}
+.rr.ok b{color:#059669}.dark .rr.ok b{color:#34d399}
+.hd{padding:14px 18px 10px;display:flex;gap:10px;align-items:flex-start;flex:none}
+.hd h1{font-size:19px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.02em}.hd p{margin:3px 0 0;font-size:12px;color:var(--mut);line-height:1.4}
+.iconbtn{margin-left:auto;border:1px solid var(--line);background:var(--bg2);color:var(--fg);width:34px;height:34px;border-radius:10px;cursor:pointer;flex:none;font-size:15px;display:flex;align-items:center;justify-content:center}
+.iconbtn:hover{background:var(--bg3)}
+.sbtn{margin:0 18px 6px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--bg2);color:var(--mut);border-radius:12px;padding:10px 12px;font-size:13.5px;cursor:text;flex:none;text-align:left}
+.sbtn:hover{border-color:var(--mut)}.sbtn kbd{margin-left:auto;font:600 10.5px Inter;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--mut);background:var(--bg)}
+.body{overflow-y:auto;overflow-x:hidden;padding:0 18px 18px;flex:1 1 auto;min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.sec{padding:12px 0;border-bottom:1px solid var(--line)}.sec:last-child{border-bottom:0}
+.lab{font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.seg{display:flex;background:var(--bg2);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;color:var(--mut);font:500 13px Inter,system-ui;padding:8px 4px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.seg button.on{background:var(--bg);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600}.seg button:disabled{opacity:.4;cursor:default}
+.seg.sm button{font-size:12px;padding:6px 2px}
+.grid{display:flex;flex-wrap:wrap;gap:6px}
+.cath{font-size:11px;font-weight:600;color:var(--mut);margin:12px 0 7px;display:flex;align-items:center;gap:6px}.cath:first-child{margin-top:2px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--fg);font:500 12.5px Inter,system-ui;padding:6px 10px 6px 8px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s,transform .08s;line-height:1.2}
+.chip:hover{border-color:var(--mut)}.chip:active{transform:scale(.97)}
+.chip.on{border-color:var(--fg);background:var(--fg);color:var(--bg);font-weight:600}
+.chip.comb{border-style:dashed}.chip.on.comb{border-style:solid}
+.chip.off{opacity:.45}
+.chip .ck{display:none;font-size:11px}.combo .chip.on .ck{display:inline}
+.preset{border:1px solid var(--acc);background:var(--acc2);color:var(--acc);font:600 12px Inter;padding:6px 10px;border-radius:9px;cursor:pointer}
+.preset:hover{filter:brightness(.97)}.preset.on{background:var(--acc);color:#fff}
+.selrow{padding:8px 0 2px;border-top:1px solid var(--line)}.selrow:first-child{border-top:0;padding-top:2px}
+.slh{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;min-width:0}.slh .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.slh .v{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;white-space:nowrap}
+.slh .x{border:0;background:var(--bg2);color:var(--mut);width:24px;height:24px;border-radius:7px;cursor:pointer;font-size:15px;line-height:1;flex:none}.slh .x:hover{color:var(--fg);background:var(--bg3)}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:var(--line);outline:none;margin:11px 0 6px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--bg);border:2.5px solid var(--acc);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--bg);border:2.5px solid var(--acc)}
+.hint{font-size:11.5px;color:var(--mut);line-height:1.45;margin-top:6px}
+.logic{margin-top:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.card{background:var(--bg2);border-radius:12px;padding:9px 12px;min-height:58px}.card .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.card .t{font-size:11.5px;color:var(--mut);margin-top:1px;line-height:1.3}
+.sk{position:relative;overflow:hidden;color:transparent!important;background:var(--bg3)!important;border-radius:6px}
+.sk:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:sh 1.1s infinite}
+.dark .sk:after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
+@keyframes sh{to{transform:translateX(100%)}}
+.card .n.sk{width:70%;height:22px}.card .t.sk{width:90%;height:12px;margin-top:6px}
+.prog{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+.tg{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13.5px;cursor:pointer;user-select:none}
+.tg .sym{width:18px;display:flex;justify-content:center}.tg .c{margin-left:auto;color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums}
+.sw{position:relative;width:34px;height:20px;flex:none}.sw input{display:none}.sw i{position:absolute;inset:0;background:var(--line);border-radius:20px;transition:.15s}.sw i:after{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw input:checked+i{background:var(--acc)}.sw input:checked+i:after{left:16px}
+.legend .bar{height:10px;border-radius:5px}.legend .lt{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);margin-top:4px;font-variant-numeric:tabular-nums}
+.hist{display:flex;align-items:flex-end;gap:4px;height:74px;margin-top:12px}.hist div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:9.5px;color:var(--mut);font-variant-numeric:tabular-nums;min-width:0}
+.hist i{display:block;width:100%;border-radius:3px 3px 0 0;min-height:1px}.hist i.dim{opacity:.3}.hist span{white-space:nowrap}
+.hl{display:flex;justify-content:space-between;gap:4px;font-size:9.5px;color:var(--mut);margin-top:3px}.hl span{flex:1;text-align:center;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}th{font-weight:600;color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;text-align:right;padding:4px;border-bottom:1px solid var(--line)}
+td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left;color:var(--mut)}td.k{text-align:left;color:var(--mut);font-size:11.5px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}th.k{text-align:left}
+#top tr{cursor:pointer}#top tr:hover{background:var(--bg2)}
+a.lnk{color:var(--acc);text-decoration:none;font-weight:600;font-size:11px;text-transform:none;letter-spacing:0;cursor:pointer}
+.note{font-size:11.5px;color:var(--mut);line-height:1.5}.note a{color:var(--acc)}.note b{color:var(--fg);font-weight:600}
+.src{margin:6px 0 0;padding:0;list-style:none}.src li{padding:5px 0;border-top:1px solid var(--line)}.src li:first-child{border-top:0}
+details summary{cursor:pointer;color:var(--acc);font-weight:600;margin-top:6px}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg2);color:var(--mut);margin-left:4px;font-weight:600}
+.tag.osm{background:#fef3c7;color:#92400e}.dark .tag.osm{background:#422006;color:#fcd34d}
+#loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:40;background:rgba(255,255,255,.6);backdrop-filter:blur(3px);transition:opacity .3s}.dark #loader{background:rgba(0,0,0,.5)}
+#loader .box{background:var(--bg);padding:20px 24px;border-radius:16px;box-shadow:var(--shadow);width:300px;font-size:13px}
+#loader .pb{height:5px;background:var(--line);border-radius:4px;margin-top:12px;overflow:hidden}#loader .pb i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+#toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:13px;z-index:60;box-shadow:var(--shadow);opacity:0;transition:opacity .2s;pointer-events:none}#toast.on{opacity:1}
+.maplibregl-popup-content{border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);background:var(--bg);color:var(--fg);font-family:Inter,system-ui;min-width:220px}
+.maplibregl-popup-tip{border-top-color:var(--bg)!important;border-bottom-color:var(--bg)!important}.maplibregl-popup-close-button{font-size:20px;color:var(--mut);padding:2px 9px}
+.pp h3{margin:0 0 2px;font-size:14px;font-weight:700;padding-right:18px}.pp .s{font-size:11.5px;color:var(--mut)}
+.deck-tooltip{font-family:Inter,system-ui!important;font-size:12px!important;border-radius:9px!important;padding:6px 9px!important;background:var(--bg)!important;color:var(--fg)!important;box-shadow:var(--shadow)}
+.maplibregl-ctrl-group{border-radius:10px!important;box-shadow:var(--shadow)!important}
+#search{position:absolute;inset:0;z-index:30;display:none;background:rgba(17,24,39,.28);backdrop-filter:blur(2px)}
+#search.on{display:block}
+#search .sbox{position:absolute;top:16px;left:16px;width:520px;max-width:calc(100% - 32px);background:var(--bg);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100% - 32px)}
+.sin{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.sin input{flex:1;border:0;outline:0;background:transparent;color:var(--fg);font:500 16px Inter,system-ui;min-width:0}
+.sin button{border:0;background:var(--bg2);color:var(--mut);border-radius:9px;padding:6px 10px;cursor:pointer;font-size:12.5px}
+#sres{overflow:auto;min-height:0}
+.res{display:flex;gap:11px;align-items:center;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--line)}
+.res:hover,.res.on{background:var(--bg2)}.res .ic{width:30px;height:30px;border-radius:9px;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.res .tt{font-size:14px;font-weight:600;line-height:1.25}.res .st{font-size:12px;color:var(--mut);margin-top:1px}
+.sfoot{padding:9px 16px;font-size:11px;color:var(--mut);border-top:1px solid var(--line);line-height:1.45}.sfoot a{color:var(--acc)}
+.sempty{padding:16px;color:var(--mut);font-size:13px;line-height:1.5}.sempty b{color:var(--fg)}
+#report{position:absolute;top:16px;right:62px;bottom:16px;width:400px;background:var(--bg);border-radius:18px;box-shadow:var(--shadow);z-index:7;display:none;flex-direction:column;overflow:hidden}
+#report.on{display:flex}
+.rh{padding:14px 16px 10px;border-bottom:1px solid var(--line);flex:none;position:relative}
+.rh h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;padding-right:80px}.rh .s{font-size:12px;color:var(--mut);margin-top:3px;line-height:1.45}
+.rh .acts{position:absolute;top:12px;right:12px;display:flex;gap:6px}
+.rb{overflow-y:auto;flex:1 1 auto;min-height:0;padding:4px 16px 16px;overscroll-behavior:contain}
+.kp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 4px}.kp .card{min-height:0;padding:8px 10px}.kp .card .n{font-size:16px}
+.rsec{font-size:11px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 4px}
+.rr{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.rr .nm{flex:1;min-width:0}.rr .nm small{display:block;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr b{font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}.rr.on{background:var(--acc2);margin:0 -8px;padding:7px 8px;border-radius:9px;border-top-color:transparent}
+.rr.far b{color:#dc2626}.dark .rr.far b{color:#f87171}
+.rr .lk{width:16px;height:3px;border-radius:2px;flex:none}
+.rr .skl{height:12px;width:60%}
+.rnote{font-size:11px;color:var(--mut);line-height:1.5;margin-top:12px}
+.nf{position:sticky;top:0;z-index:2;background:var(--bg);padding:2px 0 4px}
+.nf input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg2);color:var(--fg);font:500 13px Inter,system-ui;padding:7px 10px;border-radius:10px;outline:none}
+.nf input:focus{border-color:var(--acc)}
+.ntabs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.ntabs button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);font:500 11.5px Inter,system-ui;padding:4px 9px;border-radius:999px;white-space:nowrap;cursor:pointer}
+.ntabs button.on{border-color:var(--acc);background:var(--acc2);color:var(--acc);font-weight:600}
+.addpc{width:100%;margin-top:8px;border:1.5px dashed var(--line);background:transparent;color:var(--fg);font:600 12.5px Inter,system-ui;padding:8px 10px;border-radius:10px;cursor:pointer;text-align:left}
+.addpc:hover{border-color:var(--acc);color:var(--acc)}
+.pcrow{border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+.mini.musi{cursor:default}
+.rprice{margin:10px 0 2px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+.rprice .pv{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rprice .pv b{font-size:15px}.rprice .pv span:not(.sw){font-size:12px;color:var(--mut)}
+.rprice .sw{width:12px;height:12px;border-radius:3px;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.15) inset}
+.rprice small{display:block;margin-top:4px;font-size:11px;color:var(--mut);line-height:1.45}
+.pcl{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--mut);margin-top:2px}.pcl span{display:inline-flex;align-items:center;gap:4px}.pcl i{width:12px;height:10px;border-radius:2px;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.12) inset}
+@media (max-width:820px){
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;border-radius:18px 18px 0 0;height:310px;transition:height .25s ease;padding-bottom:env(safe-area-inset-bottom)}
+  #panel.open{height:86vh}
+  .grab{display:block;width:100%;border:0;background:transparent;padding:10px 0 8px;cursor:pointer;flex:none;touch-action:none}.grab i{display:block;width:40px;height:5px;border-radius:5px;background:var(--line);margin:0 auto}
+  .hd,.sbtn.desk{display:none}
+  .body{padding:0 14px 16px}.sec:first-child{padding-top:2px}
+  #panel.drag{transition:none}
+  .body{touch-action:pan-y}
+  #netsec{display:none}
+  .stick{position:sticky;top:0;z-index:3;background:var(--bg);padding:2px 0 8px;box-shadow:0 6px 8px -8px rgba(0,0,0,.35)}
+  .pickbtn{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;border:1.5px solid var(--acc);background:var(--acc2);color:var(--fg);border-radius:12px;padding:11px 12px;font:600 15px Inter,system-ui;cursor:pointer;text-align:left}
+  .pickbtn .pv{margin-left:auto;color:var(--acc);font-size:13px;white-space:nowrap}.pickbtn .pt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #picker{background:var(--bg)}#picker .pbox{top:0;left:0;transform:none;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;box-shadow:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  #plist .chip{padding:10px 14px 10px 11px;font-size:14px}
+  .mini{padding:6px 11px;font-size:12.5px}
+  .stats{margin-top:8px}.card{padding:7px 10px;min-height:50px}.card .n{font-size:17px}.card .t{font-size:11px}
+  input[type=range]{height:6px;margin:12px 0 6px}input[type=range]::-webkit-slider-thumb{width:28px;height:28px}
+  .chip{padding:8px 12px 8px 10px;font-size:13px}
+  #msearch{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;right:56px;z-index:4;display:flex;margin:0;background:var(--bg);box-shadow:var(--shadow);border:0}
+  #search{background:var(--bg)}#search .sbox{top:0;left:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;padding-top:env(safe-area-inset-top)}
+  #report{top:auto;left:0;right:0;bottom:0;width:auto;height:62vh;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+  .maplibregl-ctrl-top-right{top:calc(52px + env(safe-area-inset-top))}
+  #mtheme{position:absolute;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:4;width:40px;height:40px;margin:0;background:var(--bg);box-shadow:var(--shadow);border:0;border-radius:12px}
+}
+@media (min-width:821px){#msearch,#mtheme{display:none}}
+@media print{
+  #panel,#search,#picker,#mtheme,#msearch,#bar,#loader,#toast,.rh .acts,.maplibregl-control-container{display:none!important}
+  #map{visibility:hidden!important}
+  html,body{overflow:visible;height:auto}
+  #report{position:static;display:block!important;width:auto;box-shadow:none;border-radius:0;height:auto}
+  .rb{overflow:visible}.rr{break-inside:avoid}.rr.on{background:#f3f4f6}
+}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="map"></div>
+<button class="sbtn" id="msearch" aria-label="Szukaj"><span>⌕</span><span>Szukaj adresu, miejscowości, TERYT…</span></button>
+<button class="iconbtn" id="mtheme" title="Motyw jasny / ciemny" aria-label="Motyw jasny / ciemny">◐</button>
+<aside id="panel">
+  <button class="grab" id="grab" aria-label="Rozwiń panel"><i></i></button>
+  <div class="hd"><div><h1>Jak daleko?</h1><p>Piesza odległość po drogach od każdego budynku mieszkalnego w Polsce do najbliższego punktu – łącz sieci dowolnie.</p></div><button class="iconbtn" id="theme" title="Motyw jasny / ciemny" aria-label="Motyw">◐</button></div>
+  <button class="sbtn desk" id="dsearch"><span>⌕</span><span>Szukaj adresu, miejscowości, TERYT…</span><kbd>/</kbd></button>
+  <div class="body" id="body">
+    <div class="stick"><div class="seg" id="mode"><button data-m="one">Jedna sieć</button><button data-m="combo">Łącz sieci</button></div>
+      <button class="pickbtn" id="pickBtn" aria-haspopup="dialog"></button></div>
+    <div class="sec">
+      <div id="sel" style="margin-top:10px"></div>
+      <div class="seg sm logic" id="logic" hidden><button data-l="all">Wszystkie warunki</button><button data-l="any">Którykolwiek</button></div>
+      <div class="hint" id="logicH" hidden></div>
+      <div class="stats">
+        <div class="card"><div class="n sk" id="cntB">–</div><div class="t sk" id="pctB">budynków</div></div>
+        <div class="card"><div class="n sk" id="cntP">–</div><div class="t sk" id="pctP">mieszkańców</div></div>
+      </div>
+      <div id="scan" hidden><div class="prog"><i id="scanP"></i></div><div class="hint" id="scanT">Liczenie dla całej Polski…</div></div>
+    </div>
+    <div class="sec">
+      <div class="lab">Gotowe zestawy</div>
+      <div class="grid" id="presets"></div>
+    </div>
+    <div class="sec more" id="netsec">
+      <div class="lab"><span id="netT">Wybierz sieć</span><a class="lnk" id="clear" hidden>wyczyść</a></div>
+      <div id="nets"></div>
+    </div>
+    <div class="sec more">
+      <div class="lab">Licz</div>
+      <div class="seg sm" id="unit"><button data-u="b">Budynki</button><button data-u="pop">Mieszkańcy</button><button data-u="pre">Dzieci 0–17</button><button data-u="post">Seniorzy</button></div>
+      <div id="histW"><div class="hist" id="hist"></div><div class="hl" id="histL"></div></div>
+    </div>
+    <div class="sec legend more">
+      <div class="lab"><span id="legT"></span></div>
+      <div class="bar" id="legBar"></div><div class="lt" id="legTicks"></div>
+    </div>
+    <div class="sec more">
+      <div class="lab">Warstwy</div>
+      <label class="tg"><span class="sym"><span class="dot" style="background:linear-gradient(90deg,#f99ab6,#6a0177)"></span></span>Budynki mieszkalne<span class="c"></span><span class="sw"><input type="checkbox" id="lyB" checked><i></i></span></label>
+      <label class="tg"><span class="sym"><span class="dot" id="poiDot"></span></span><span>Punkty wybranych sieci</span><span class="c" id="poiCnt"></span><span class="sw"><input type="checkbox" id="lyP" checked><i></i></span></label>
+      <label class="tg"><span class="sym"><span class="dot" style="background:#9ca3af"></span></span>Bez połączenia z siecią dróg<span class="c" id="cU"></span><span class="sw"><input type="checkbox" id="lyU"><i></i></span></label>
+      <label class="tg" id="lyCw"><span class="sym"><span class="dot" style="background:linear-gradient(90deg,#c7e9b4,#1d91c0,#0c2c84)"></span></span>Ceny mieszkań zł/m² (RCN)<span class="c"></span><span class="sw"><input type="checkbox" id="lyC"><i></i></span></label>
+      <div id="pcLeg" hidden style="margin:-2px 0 6px 28px"></div>
+      <label class="tg"><span class="sym" style="color:var(--mut)">⌂</span>Tylko budynki użytkowane<span class="c"></span><span class="sw"><input type="checkbox" id="act" checked><i></i></span></label>
+    </div>
+    <div class="sec more">
+      <div class="lab"><span id="topT">Najdalej położone</span> <a class="lnk" id="csv">CSV ↓</a></div>
+      <table><thead><tr><th>#</th><th id="thD">Odległość</th><th>Mieszk.</th><th class="k" id="thK">TERYT · rodzaj</th></tr></thead><tbody id="top"></tbody></table>
+    </div>
+    <div class="sec note more" id="srcBox"></div>
+    <div class="sec note more" id="about"></div>
+  </div>
+</aside>
+<div id="search" role="dialog" aria-label="Wyszukiwarka"><div class="sbox">
+  <div class="sin"><span style="color:var(--mut);font-size:18px">⌕</span><input id="sq" type="search" placeholder="Adres, ulica, miejscowość, gmina, kod TERYT, nazwa punktu" autocomplete="off" enterkeyhint="search"><button id="sx">Esc</button></div>
+  <div id="sres"></div>
+  <div class="sfoot">Miejscowości: PRNG, ulice: PRG (GUGiK), gminy: PRG. Adresy z numerem domu: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Wybranie wyniku przybliża mapę i otwiera raport dla najbliższego budynku.</div>
+</div></div>
+<div id="picker" role="dialog" aria-label="Wybór sieci"><div class="pbox">
+  <div class="ph"><input id="pq" type="search" placeholder="Szukaj: apteka, Żabka, metro…" autocomplete="off" enterkeyhint="search"><button id="pDone">Gotowe</button></div>
+  <div class="pinfo" id="pinfo"></div><div class="ptabs" id="ptabs"></div>
+  <div id="plist"></div>
+</div></div>
+<aside id="report" aria-label="Raport o budynku">
+  <div class="rh"><h2 id="rT">Budynek</h2><div class="s" id="rS"></div>
+    <div class="acts"><button class="iconbtn" id="rPrint" title="Drukuj raport" aria-label="Drukuj">⎙</button><button class="iconbtn" id="rX" title="Zamknij" aria-label="Zamknij">×</button></div></div>
+  <div class="rb" id="rB"></div>
+</aside>
+<div id="toast"></div>
+<div id="loader"><div class="box"><b>Jak daleko?</b><div class="note" style="margin-top:4px" id="lt">Wczytywanie mapy i danych…</div><div class="pb"><i id="lp"></i></div></div></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const STY={light:'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',dark:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'};
+const STOPS=[0,500,1000,2000,3000,5000,10000,20000];
+const RAMP={light:['#fde7e3','#fcc5c0','#f99ab6','#f067a6','#d6338f','#a50f7e','#6a0177','#3f0050'],dark:['#2e2340','#47306a','#6a3d8f','#9446a3','#bf4fa5','#e45f98','#ff7f86','#ffb38f']};
+const BANDS=[0,500,1000,2000,3000,5000,10000,20000];
+const MOBILE=matchMedia('(max-width:820px)').matches,BZ=MOBILE?10:9,MAXSEL=12;
+const UNIT={b:'budynków',pop:'mieszkańców',pre:'dzieci 0–17',post:'seniorów'};
+const st={mode:'one',sel:[],th:{},dir:{},req:{},logic:'all',act:true,unit:'pop',theme:localStorage.getItem('jd-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),pick:null,lines:[],rep:null,ctop:null,top:null,pc:{on:false,op:'lt',v:9000}};
+let CFG,HIST,map,overlay,popup,UNC,LUT,POPLUT;const NETS={},CACHE=new Map(),PEND=new Map(),POIS=new Map(),TOPS=new Map(),STORE=new Map();let lastShown=[];
+const fmt=n=>n==null?'–':Math.round(n).toLocaleString('pl-PL');
+const fbig=n=>n>=1e6?(n/1e6).toLocaleString('pl-PL',{maximumFractionDigits:2})+' mln':n>=1e4?(n/1e3).toLocaleString('pl-PL',{maximumFractionDigits:0})+' tys.':fmt(n);
+const fkm=m=>m==null?'–':m>=1000?(m/1000).toLocaleString('pl-PL',{maximumFractionDigits:m>=10000?0:1})+' km':Math.round(m)+' m';
+const dec=c=>c<100?c*20:c<180?2000+(c-100)*100:10000+(c-180)*500;
+const enc=m=>m<2000?Math.floor(m/20):m<10000?100+Math.floor((m-2000)/100):Math.min(254,180+Math.floor((m-10000)/500));
+const mid=c=>c>=254?dec(254):(dec(c)+dec(c+1))/2;
+const fdist=m=>m<2000?(Math.round(m/10)*10)+' m':fkm(m);
+const fcode=c=>c===255||c==null?'–':c===0?'< 20 m':c>=254?'≥ 47 km':'≈ '+fdist(mid(c));
+const s2m=(v,max)=>max*Math.pow(v/1000,2),m2s=(m,max)=>Math.round(1000*Math.sqrt(m/max));
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>String(s||'').toLowerCase().replace(/ł/g,'l').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const pmon=d=>{const [y,m]=String(d).split('-');return ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][+m-1]+' '+y;};
+const K=()=>st.sel.length;
+if(st.theme==='dark')document.documentElement.classList.add('dark');
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200);}
+
+// ---------- pasek wczytywania (u góry ekranu, dla każdego pobierania) ----------
+const NET_={pend:0,done:0};
+function barUpd(){const b=$('bar'),p=NET_.pend,d=NET_.done;if(p>0){b.classList.add('on');b.style.width=(8+88*d/(d+p))+'%';}
+  else{b.style.width='100%';clearTimeout(barUpd.t);barUpd.t=setTimeout(()=>{if(NET_.pend===0){b.classList.remove('on');setTimeout(()=>{if(NET_.pend===0){b.style.width='0';NET_.done=0;}},400);}},150);}}
+function tracked(p){NET_.pend++;barUpd();return p.finally(()=>{NET_.pend--;NET_.done++;barUpd();});}
+// ponawianie przy chwilowych błędach serwera (5xx/429) lub sieci: 3 próby z rosnącym odstępem
+function fetchRetry(u,k,n=0){return fetch(u).then(r=>{if(!r.ok){const e=new Error(u+' '+r.status);e.st=r.status;throw e;}return k(r);}).catch(e=>{if(n<3&&(!e.st||e.st>=500||e.st===429))return new Promise(res=>setTimeout(res,400*Math.pow(2,n))).then(()=>fetchRetry(u,k,n+1));throw e;});}
+function fetchBin(u){return tracked(fetchRetry(u,r=>r.arrayBuffer()));}
+function fetchJson(u){return tracked(fetchRetry(u,r=>r.json()));}
+
+// ---------- kolory ----------
+function buildLUT(){LUT=new Uint32Array(256);const pack=c=>((240<<24)|(c[2]<<16)|(c[1]<<8)|c[0])>>>0,r=RAMP[st.theme].map(hex);
+  for(let c=0;c<256;c++){const d=dec(c);let k=0;while(k<STOPS.length-2&&d>STOPS[k+1])k++;const t=Math.min(1,Math.max(0,(d-STOPS[k])/(STOPS[k+1]-STOPS[k])));LUT[c]=pack(r[k].map((x,j)=>Math.round(x+(r[k+1][j]-x)*t)));}
+  LUT[255]=pack(st.theme==='dark'?[110,116,128]:[150,156,166]);
+  $('legBar').style.background=`linear-gradient(90deg,${RAMP[st.theme].map((c,i)=>c+' '+(i/(RAMP[st.theme].length-1)*100).toFixed(0)+'%').join(',')})`;
+  $('legTicks').innerHTML=STOPS.map(s=>`<span>${s===0?'0':s>=1000?(s/1000)+(s===20000?'+ km':''):s}</span>`).join('');}
+
+// ---------- dane kafli ----------
+const T=()=>CFG.tile;
+function deq(q,x0,y0,sx,sy){const n=q.length/2,p=new Float32Array(2*n);for(let i=0;i<n;i++){p[2*i]=x0+q[2*i]/65535*sx;p[2*i+1]=y0+q[2*i+1]/65535*sy;}return p;}
+function tileOrigin(key){const [tx,ty]=key.split('_').map(Number);return [CFG.origin[0]+tx*T(),CFG.origin[1]+ty*T()];}
+function parsePos(buf,key){const n=new Uint32Array(buf,0,1)[0],q=new Uint16Array(buf,4,2*n),a=new Uint8Array(buf,4+4*n,n);let pos;
+  if(key==='l0'){const b=CFG.bbox;pos=deq(q,b[0],b[1],b[2]-b[0],b[3]-b[1]);}else{const o=tileOrigin(key.split('/').pop());pos=deq(q,o[0],o[1],T(),T());}return {n,q,pos,act:a,key};}
+// klucze: 'S:l0' | 'S:l1/<t>' | 'P:<t>' (pozycje) ; 'N:<sieć>/l0' | 'N:<sieć>/l1/<t>' | 'D:<sieć>/<t>' | 'W:<t>' (bajty)
+function urlOf(key){const k=key[0],p=key.slice(2);return k==='R'?`pr/${p}.bin`:k==='S'?`s/${p}.bin`:k==='P'?`p/${p}.bin`:k==='N'?`n/${p}.bin`:k==='D'?`d/${p}.bin`:`w/${p}.bin`;}
+function parse(key,b){const k=key[0],p=key.slice(2);return (k==='S'||k==='P')?parsePos(b,p):k==='R'?{code:new Uint16Array(b)}:{code:new Uint8Array(b)};}
+function has(key){return CACHE.has(key)||STORE.has(key);}
+function peek(key){return CACHE.get(key)||STORE.get(key);}
+function get(key){const v=peek(key);if(v){v.used=performance.now();return Promise.resolve(v);}if(PEND.has(key))return PEND.get(key);
+  const p=fetchBin(urlOf(key)).then(b=>{const v=parse(key,b);v.used=performance.now();CACHE.set(key,v);PEND.delete(key);evict();return v;}).catch(e=>{PEND.delete(key);throw e;});PEND.set(key,p);return p;}
+function load(key){if(!has(key)&&!PEND.has(key))get(key).then(redraw,()=>{});}
+function evict(){const lim=MOBILE?90:240;if(CACHE.size<=lim)return;const t=[...CACHE.entries()].filter(([k])=>!k.endsWith('l0'));t.sort((a,b)=>(a[1].used||0)-(b[1].used||0));
+  const vis=new Set(lastShown.flatMap(g=>[g.pos,...g.codes]));for(const [k] of t.slice(0,Math.max(0,CACHE.size-lim)))if(!vis.has(k))CACHE.delete(k);}
+function visTiles(pad){const b=map.getBounds(),w=b.getWest(),e=b.getEast(),s=b.getSouth(),n=b.getNorth(),dx=(e-w)*pad,dy=(n-s)*pad,out=[];
+  for(let x=Math.floor((w-dx-CFG.origin[0])/T());x<=Math.floor((e+dx-CFG.origin[0])/T());x++)for(let y=Math.floor((s-dy-CFG.origin[1])/T());y<=Math.floor((n+dy-CFG.origin[1])/T());y++)out.push(x+'_'+y);return out;}
+function wanted(){const z=map.getZoom(),S=st.sel;if(!S.length)return [];
+  if(z<7)return [{id:'l0',pos:'S:l0',codes:S.map(id=>`N:${id}/l0`)}];
+  if(z<BZ)return visTiles(.15).filter(k=>CFG.lod.l1[k]).map(k=>({id:'l1/'+k,pos:'S:l1/'+k,codes:S.map(id=>`N:${id}/l1/${k}`)}));
+  return visTiles(.1).filter(k=>CFG.tiles[k]).map(k=>({id:k,pos:'P:'+k,codes:S.map(id=>`D:${id}/${k}`)}));}
+const ready=g=>has(g.pos)&&g.codes.every(has);
+// kolor: zawsze odległość do pierwszej sieci na liście (można zmienić stukając nazwę); filtr: warunki „daleko ≥” / „blisko <”, każdy „musi” albo „lub”
+const isNear=id=>st.mode==='combo'&&st.dir[id]==='near';
+const isReq=id=>st.mode!=='combo'||st.sel.length<2||st.req[id]!==false;
+function logicState(){const r=st.sel.map(isReq);return r.every(Boolean)?'all':r.every(x=>!x)?'any':'mix';}
+function colKey(){return st.sel[0]+'|'+st.theme;}
+function fltKey(){return st.sel.map(id=>id+':'+enc(st.th[id])+(isNear(id)?'n':'f')+(isReq(id)?'r':'o')).join(',')+'|'+(st.act?1:0)+'|'+pcKey();}
+// v4: warunek ceny mieszkań (zawsze „musi”); pr = ceny budynków (zł/m² ÷ 10, bity 0–13; 0 = brak danych → warunek niespełniony)
+const pcOn=()=>st.pc.on&&!!PRICE;
+const pcKey=()=>pcOn()?st.pc.op+st.pc.v:'';
+function passFn(){const T=st.sel.map(id=>enc(st.th[id])),N=st.sel.map(isNear),R=st.sel.map(isReq),k=T.length,anyOpt=R.some(r=>!r),pcv=pcOn()?st.pc.v/10:0,lt=st.pc.op==='lt';
+  return (codes,i,pr)=>{if(pcv){const v=pr?pr[i]&16383:0;if(!v||(lt?v>=pcv:v<pcv))return false;}let opt=!anyOpt;for(let j=0;j<k;j++){const v=codes[j][i],ok=v!==255&&(N[j]?v<T[j]:v>=T[j]);if(R[j]){if(!ok)return false;}else if(ok)opt=true;}return opt;};}
+function dataOf(g){const A=peek(g.pos),C=g.codes.map(k=>peek(k).code);A.used=performance.now();const n=A.n,ck=colKey(),fk=fltKey(),vk=g.codes.join('|');
+  if(!A.vis)A.vis={};const V=A.vis[vk]||(A.vis[vk]={});
+  if(V.ck!==ck){const col=new Uint8Array(4*n),c32=new Uint32Array(col.buffer),c=C[0];for(let i=0;i<n;i++)c32[i]=LUT[c[i]];V.col=col;V.ck=ck;V.fk=null;}
+  if(V.fk!==fk){const fv=new Float32Array(n),pass=passFn(),am=st.act,pr=pcOn()?priceArr(A):null;for(let i=0;i<n;i++)fv[i]=(am&&!A.act[i])?0:pass(C,i,pr)?1:0;V.fk=fk;
+    V.data={length:n,attributes:{getPosition:{value:A.pos,size:2},getFillColor:{value:V.col,size:4,normalized:true},getFilterValue:{value:fv,size:1}}};}
+  return V.data;}
+
+// ---------- warstwy ----------
+const NP={depthCompare:'always',depthWriteEnabled:false};
+function radius(z){return Math.max(0.6,Math.min(MOBILE?5:7,0.55*Math.pow(1.4,z-6)))*(MOBILE?1.15:1);}
+function poiR(z,many){return ((z<6?0.55:z<7?0.55+0.45*(z-6):z<8?1.0+0.6*(z-7):Math.min(7,1.6+0.6*(z-8)))*(MOBILE?1.2:1))*(many?0.75:1);}
+function poiW(z){return z<8?0:z<10?0.8:1.2;}
+let symId=null;function firstSymbol(){if(symId&&map.getLayer(symId))return symId;const s=map.getStyle();if(!s||!s.layers)return undefined;let last=-1;s.layers.forEach((l,i)=>{if(l.type!=='symbol')last=i;});const l=s.layers.slice(last+1).find(l=>l.type==='symbol');symId=l?l.id:undefined;return symId;}
+function uncData(){const key=st.sel.join(',');if(UNC.k===key)return UNC.data;let lo=0,hi=0;for(const id of st.sel){const b=NETS[id].bit;if(b<32)lo|=(1<<b);else hi|=(1<<(b-32));}lo>>>=0;hi>>>=0;
+  const fv=new Float32Array(UNC.n);for(let i=0;i<UNC.n;i++)fv[i]=((UNC.lo[i]&lo)||(UNC.hi[i]&hi))?(UNC.act[i]?2:1):0;UNC.k=key;UNC.data={length:UNC.n,attributes:{getPosition:{value:UNC.pos,size:2},getFilterValue:{value:fv,size:1}}};return UNC.data;}
+function layers(){const z=map.getZoom(),before=firstSymbol(),F=deck.DataFilterExtension,L=[new deck.ScatterplotLayer({parameters:NP,id:'anchor',data:[],beforeId:before})];
+  if($('lyC').checked&&PRICE){const g=z<9?'g5':'g1';L.push(new deck.SolidPolygonLayer({parameters:NP,id:'price:'+g+':'+st.theme,data:PRICE[g].cells,beforeId:before,getPolygon:d=>d.p,getFillColor:d=>pcColor(d.v),opacity:st.theme==='dark'?0.5:0.55,pickable:true}));}
+  if($('lyU').checked&&UNC&&K())L.push(new deck.ScatterplotLayer({parameters:NP,id:'unc',data:uncData(),beforeId:before,radiusUnits:'pixels',getRadius:1,radiusScale:radius(z)+.4,getFillColor:st.theme==='dark'?[160,166,176,210]:[107,114,128,200],extensions:[new F({filterSize:1})],filterRange:[st.act?2:1,2]}));
+  if($('lyB').checked&&K()){const want=wanted();want.forEach(g=>{load(g.pos);g.codes.forEach(load);});let show=want.filter(ready);
+    if(show.length<want.length){const ids=new Set(show.map(g=>g.id));show=[...show,...lastShown.filter(g=>!ids.has(g.id)&&ready(g)&&g.codes.length===K()&&g.codes.every((c,j)=>c.slice(2).startsWith(st.sel[j]+'/')))];}else lastShown=show;
+    const rs=radius(z);for(const g of show)L.push(new deck.ScatterplotLayer({parameters:NP,id:'b:'+g.id+':'+g.codes.length,data:dataOf(g),beforeId:before,radiusUnits:'pixels',getRadius:1,radiusScale:rs,opacity:z<8?0.82:1,extensions:[new F({filterSize:1})],filterRange:[1,1]}));}
+  if($('lyP').checked)for(const id of st.sel){const P=POIS.get(id),n=NETS[id];if(!P||!P.data)continue;const many=P.n>40000;if(many&&z<8)continue;
+    L.push(new deck.ScatterplotLayer({parameters:NP,id:'poi:'+id,data:P.data,beforeId:before,radiusUnits:'pixels',getRadius:1,radiusScale:poiR(z,many||K()>2),stroked:poiW(z)>0,getLineColor:hex(n.line),lineWidthUnits:'pixels',getLineWidth:1,lineWidthScale:poiW(z),getFillColor:hex(n.fill),opacity:z<6.5?0.6:z<8?0.85:1,pickable:true}));}
+  {const dk=st.theme==='dark';
+    L.push(new deck.PathLayer({parameters:NP,id:'lines',data:st.lines,getPath:d=>d.path,getColor:d=>d.color,widthUnits:'pixels',getWidth:3,capRounded:true,getDashArray:[4,3],dashJustified:true,extensions:[new deck.PathStyleExtension({dash:true})]}));
+    L.push(new deck.ScatterplotLayer({parameters:NP,id:'ends',data:st.lines,getPosition:d=>d.path[1],radiusUnits:'pixels',getRadius:6,getFillColor:d=>d.color,stroked:true,getLineColor:[255,255,255],lineWidthUnits:'pixels',getLineWidth:2}));
+    L.push(new deck.TextLayer({parameters:NP,id:'labels',data:st.lines,getPosition:d=>d.lab,getText:d=>d.text,characterSet:'auto',fontFamily:'Inter, system-ui, sans-serif',fontWeight:600,getSize:12,sizeUnits:'pixels',getColor:dk?[240,240,245,255]:[17,24,39,255],background:true,getBackgroundColor:dk?[21,23,28,235]:[255,255,255,240],backgroundPadding:[5,3],getBorderColor:d=>d.color,getBorderWidth:1.5}));}
+  L.push(new deck.ScatterplotLayer({parameters:NP,id:'pick',data:st.pick?[st.pick]:[],getPosition:d=>[d.lon,d.lat],radiusUnits:'pixels',getRadius:9,stroked:true,filled:true,getFillColor:[255,255,255,200],getLineColor:st.theme==='dark'?[255,255,255]:[17,24,39],lineWidthUnits:'pixels',getLineWidth:3}));
+  return L;}
+let raf=0;function redraw(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;if(!HIST||!map||!LUT)return;overlay.setProps({layers:layers()});});}
+
+// ---------- punkty sieci ----------
+function parsePoi(b,n0){const n=n0!=null?n0:new Uint32Array(b,0,1)[0],o=n0!=null?0:4,lo=new Int32Array(b,o,n),la=new Int32Array(b,o+4*n,n),ty=new Uint8Array(b,o+8*n,n);return {n,lo,la,ty};}
+function poi(id){const c=POIS.get(id);if(c)return c.p||Promise.resolve(c);const p=fetchBin(`poi/${id}/all.bin`).then(b=>{const P=parsePoi(b),pos=new Float32Array(2*P.n);for(let i=0;i<P.n;i++){pos[2*i]=P.lo[i]/1e6;pos[2*i+1]=P.la[i]/1e6;}
+  Object.assign(P,{pos,data:{length:P.n,attributes:{getPosition:{value:pos,size:2}}}});POIS.set(id,P);return P;}).catch(e=>{POIS.delete(id);throw e;});POIS.set(id,{p});return p;}
+const PT=new Map(),NM=new Map();
+function poiTile(id,t){const k=id+'/'+t;if(!PT.has(k)){const [s,c]=NETS[id].ptiles[t];PT.set(k,fetchBin(`poi/${id}/t/${t}.bin`).then(b=>({...parsePoi(b,c),start:s})));}return PT.get(k);}
+function namesOf(id,t){const k=id+'|'+(t||'*');if(!NM.has(k))NM.set(k,fetchJson(t?`poi/${id}/n/${t}.json`:`poi/${id}/names.json`));return NM.get(k);}
+async function poiName(id,gi){const n=NETS[id];if(n.ptiles){for(const [t,[s,c]] of Object.entries(n.ptiles))if(gi>=s&&gi<s+c)return (await namesOf(id,t))[gi-s];return '';}return (await namesOf(id))[gi];}
+// kandydaci wokół punktu: [lon, lat, typ, indeks globalny]
+async function poiAround(id,lon,lat,limDeg){const n=NETS[id],out=[],cl=Math.cos(lat*Math.PI/180);
+  const tl=Math.floor((lon-limDeg/cl-CFG.origin[0])/T()),tr=Math.floor((lon+limDeg/cl-CFG.origin[0])/T()),bb=Math.floor((lat-limDeg-CFG.origin[1])/T()),bt=Math.floor((lat+limDeg-CFG.origin[1])/T());
+  if(n.ptiles&&(tr-tl+1)*(bt-bb+1)<=9){const ts=[];for(let x=tl;x<=tr;x++)for(let y=bb;y<=bt;y++)if(n.ptiles[x+'_'+y])ts.push(x+'_'+y);
+    for(const P of await Promise.all(ts.map(t=>poiTile(id,t))))for(let i=0;i<P.n;i++)out.push([P.lo[i]/1e6,P.la[i]/1e6,P.ty[i],P.start+i]);return out;}
+  const P=await poi(id);for(let i=0;i<P.n;i++)out.push([P.lo[i]/1e6,P.la[i]/1e6,P.ty[i],i]);return out;}
+// najbliższy po drogach = punkt o randze r wśród punktów posortowanych wg odległości w linii prostej (ta sama metryka co przy budowie danych)
+function nearestByRank(cand,blon,blat,code,r){if(r===255||code===255)return null;const U=code>=254?1e9:dec(code+1),lim=(U*1.1+150)/111320,lim2=lim*lim,cb=Math.cos(blat*Math.PI/180),c=[];
+  for(const p of cand){const dy=p[1]-blat;if(dy>lim||dy<-lim)continue;const dx=(p[0]-blon)*cb,q=dx*dx+dy*dy;if(q<=lim2)c.push([q,p]);}
+  c.sort((a,b)=>a[0]-b[0]||a[1][3]-b[1][3]);return r<c.length?c[r][1]:null;}
+// v4: ranga z pliku r/<sieć>/<t>.gz – cały kafel (gzip, zwykle kilka kB) rozpakowany w przeglądarce; bez DecompressionStream → ranga 0 (najbliższy w linii prostej)
+const RG=new Map();
+async function gunzip(u){if(u[0]!==0x1f||u[1]!==0x8b)return u;if(typeof DecompressionStream==='undefined')return null;
+  const s=new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'));return new Uint8Array(await new Response(s).arrayBuffer());}
+function rankFile(id,t){const k=id+'/'+t;if(!RG.has(k)){RG.set(k,fetchBin(`r/${id}/${t}.gz`).then(b=>gunzip(new Uint8Array(b))).catch(e=>{RG.delete(k);throw e;}));if(RG.size>400)RG.delete(RG.keys().next().value);}return RG.get(k);}
+async function rankAt(id,t,i){const u=await rankFile(id,t);if(!u)return 0;const dv=new DataView(u.buffer,u.byteOffset,u.byteLength),n=dv.getUint32(0,true),ne=dv.getUint32(4,true),nb=Math.ceil(n/2),byte=u[8+(i>>1)],v=(i&1)?byte>>4:byte&15;
+  if(v<15)return v;if(!ne)return 255;const off=8+nb+((4-((8+nb)%4))%4);let lo=0,hi=ne-1;
+  while(lo<=hi){const m=(lo+hi)>>1,x=dv.getUint32(off+4*m,true);if(x===i)return u[off+4*ne+m];if(x<i)lo=m+1;else hi=m-1;}return 255;}
+
+// ---------- v4: ceny mieszkań (RCN) – siatki ~1 km i ~5 km, mediana zł/m², komórki ≥ 5 transakcji ----------
+let PRICE=null;const PC_STOPS=[5000,7000,9000,11000,14000,18000],PC_COL={light:['#ffffcc','#c7e9b4','#7fcdbb','#41b6c4','#1d91c0','#225ea8','#0c2c84'],dark:['#fff7bc','#d9f0a3','#addd8e','#78c679','#31a354','#006837','#004529']};
+function pcIdx(v){let k=0;while(k<PC_STOPS.length&&v>=PC_STOPS[k])k++;return k;}
+function pcColor(v){return hex(PC_COL[st.theme][pcIdx(v)]);}
+async function loadPrice(){if(PRICE||!CFG.price)return PRICE;const P={},o=CFG.price.origin;
+  for(const g of ['g1','g5']){const b=await fetchBin(`price/${g}.bin`),n=new Uint32Array(b,0,1)[0],a=new Uint16Array(b,4,4*n),gi=CFG.price.grids[g],dx=gi.dlon,dy=gi.dlat,W=Math.ceil(10.6/dx),Hh=Math.ceil(6.2/dy);
+    const med=new Uint16Array(W*Hh),cnt=new Uint16Array(W*Hh),cells=new Array(n);
+    for(let j=0;j<n;j++){const ix=a[4*j],iy=a[4*j+1],m=a[4*j+2],c=a[4*j+3];if(ix<W&&iy<Hh){med[iy*W+ix]=m;cnt[iy*W+ix]=c;}const x0=o[0]+ix*dx,y0=o[1]+iy*dy;cells[j]={p:[[x0,y0],[x0+dx,y0],[x0+dx,y0+dy],[x0,y0+dy]],v:m*10,n:c};}
+    P[g]={dx,dy,W,H:Hh,med,cnt,cells};}
+  PRICE=P;return P;}
+// cena w punkcie: najpierw komórka ~1 km, potem ~5 km (tak samo jak w danych budynków)
+function priceAt(lon,lat){if(!PRICE)return null;const o=CFG.price.origin;for(const [g,lvl] of [['g1',1],['g5',2]]){const G=PRICE[g],ix=Math.floor((lon-o[0])/G.dx),iy=Math.floor((lat-o[1])/G.dy);
+    if(ix<0||iy<0||ix>=G.W||iy>=G.H)continue;const m=G.med[iy*G.W+ix];if(m)return {v:m*10,n:G.cnt[iy*G.W+ix],lvl};}return null;}
+// ceny dla pozycji kafla (mapa, LOD, wybór budynku) – liczone z siatek i zapamiętane w kaflu
+function priceArr(A){if(A.pr)return A.pr;const n=A.n,pr=new Uint16Array(n);for(let i=0;i<n;i++){const q=priceAt(A.pos[2*i],A.pos[2*i+1]);pr[i]=q?q.v/10:0;}A.pr=pr;return pr;}
+
+// ---------- liczniki ----------
+function H(id){return HIST[id];}
+function cum(id,key,c){const h=H(id)[key];return c>=h.length?0:h[Math.max(0,c)];}
+const pc=(a,b)=>(100*a/Math.max(1,b)).toLocaleString('pl-PL',{maximumFractionDigits:a/b<.01?2:1})+' %';
+function setCards(nb,totB,np,totP,u){for(const id of ['cntB','pctB','cntP','pctP'])$(id).classList.remove('sk');
+  $('cntB').textContent=fbig(nb);$('pctB').textContent=`budynków · ${pc(nb,totB)}`;$('cntP').textContent=fbig(np);$('pctP').textContent=`${UNIT[u]} (szac.) · ${pc(np,totP)}`;}
+function skCards(){for(const id of ['cntB','pctB','cntP','pctP'])$(id).classList.add('sk');}
+function stats(){if(!HIST)return;if(!K()){skCards();$('scan').hidden=true;drawHist();topList();return;}
+  if(K()===1&&!isNear(st.sel[0])&&!pcOn()){const id=st.sel[0],c=enc(st.th[id]),sub=st.act?'act':'all',u=st.unit==='b'?'pop':st.unit;
+    setCards(cum(id,'b_'+sub,c),st.act?CFG.n_active:CFG.n,cum(id,u+'_'+sub,c),H(id)[u+'_'+sub][0]+H(id)['unc_'+u+'_'+sub],u);$('cU').textContent=fmt(H(id)['unc_b_'+sub]);$('scan').hidden=true;SCAN.run++;}
+  else scanStats();
+  drawHist();topList();}
+function drawHist(){const one=K()===1;$('histW').style.display=one?'':'none';document.querySelectorAll('#unit button').forEach(b=>b.disabled=K()>1&&(b.dataset.u==='pre'||b.dataset.u==='post'));if(!one)return;
+  const id=st.sel[0],sub=st.act?'act':'all',u=st.unit,h=H(id)[u+'_'+sub],tot=h[0],B=BANDS.map(enc),bands=B.map((b,i)=>[b,i<B.length-1?B[i+1]:255]),labels=['<0,5','0,5–1','1–2','2–3','3–5','5–10','10–20','>20 km'];
+  const val=bands.map(([a,b])=>(a>=255?0:h[a])-(b>=255?0:h[b]));const mx=Math.max(...val,1),c=enc(st.th[id]);
+  $('hist').innerHTML=val.map((v,i)=>`<div title="${fmt(v)}"><span>${(100*v/Math.max(1,tot)).toLocaleString('pl-PL',{maximumFractionDigits:v/tot<.1?1:0})}%</span><i class="${bands[i][1]<=c?'dim':''}" style="height:${Math.max(1,62*v/mx)}%;background:${RAMP[st.theme][Math.min(7,i)]}"></i></div>`).join('');
+  $('histL').innerHTML=labels.map(s=>`<span>${s}</span>`).join('');}
+// kombinacje: dokładne liczenie dla całej Polski z kafli d/ i w/ (pobierane raz, potem przeliczenie natychmiastowe)
+const SCAN={key:null,done:0,total:0,run:0,miss:0};let scanT=0;
+function scanKey(){return st.sel.slice().sort().join(',')+(pcOn()?'|pr':'');}
+async function scanEnsure(){const key=scanKey(),run=++SCAN.run,tiles=Object.keys(CFG.tiles).sort((a,b)=>CFG.tiles[b]-CFG.tiles[a]),keys=[];
+  for(const t of tiles){keys.push('W:'+t);if(pcOn())keys.push('R:'+t);for(const id of st.sel)keys.push(`D:${id}/${t}`);}
+  for(const k of [...STORE.keys()])if(k[0]==='D'&&!st.sel.includes(k.slice(2).split('/')[0]))STORE.delete(k);
+  const need=keys.filter(k=>!STORE.has(k));SCAN.miss=0;SCAN.total=keys.length;SCAN.done=keys.length-need.length;SCAN.key=key;
+  if(need.length){const ts=performance.now();window.__scan_ms=null;$('scan').hidden=false;const upd=()=>{$('scanP').style.width=(100*SCAN.done/SCAN.total)+'%';$('scanT').textContent=`Liczenie dla całej Polski… ${Math.round(100*SCAN.done/SCAN.total)}%`;};upd();let i=0;
+    const worker=async()=>{while(i<need.length&&SCAN.run===run){const k=need[i++];try{const v=peek(k)||await fetchBin(urlOf(k)).then(b=>parse(k,b));STORE.set(k,v);CACHE.delete(k);}catch(e){SCAN.miss++;}SCAN.done++;if(SCAN.run===run&&SCAN.done%8===0)upd();}};
+    await Promise.all(Array.from({length:MOBILE?20:24},worker));if(SCAN.run===run)window.__scan_ms=Math.round(performance.now()-ts);}
+  if(SCAN.run!==run)return false;$('scan').hidden=true;return true;}
+function scanStats(){skCards();clearTimeout(scanT);scanT=setTimeout(async()=>{if(SCAN.key===scanKey()&&SCAN.done>=SCAN.total&&SCAN.total&&!SCAN.miss){computeCombo();return;}const ok=await scanEnsure();if(ok&&K())computeCombo();},60);}
+function computeCombo(){const t0=performance.now(),am=st.act,pass=passFn(),u=st.unit==='b'?'b':'pop',n0=isNear(st.sel[0]);
+  let nb=0,np=0,skip=0;const top=[];let tmin=-1;
+  for(const t in CFG.tiles){const W=STORE.get('W:'+t);if(!W){skip++;continue;}const w=W.code,C=st.sel.map(id=>(STORE.get(`D:${id}/${t}`)||{}).code);if(C.some(c=>!c)){skip++;continue;}const n=w.length;
+    const PR=pcOn()?(STORE.get('R:'+t)||{}).code:null;if(pcOn()&&!PR){skip++;continue;}
+    for(let i=0;i<n;i++){if(am&&!(w[i]>>7))continue;if(!pass(C,i,PR))continue;nb++;const p=POPLUT[w[i]&127];np+=p;if(u==='pop'&&p<0.5)continue;
+      const v0=C[0][i],s=v0===255?-1e9:n0?-v0:v0;
+      if(top.length<60||s>tmin){top.push([s,t,i,C.map(c=>c[i]),p]);if(top.length>=120){top.sort((a,b)=>b[0]-a[0]);top.length=60;tmin=top[59][0];}}}}
+  top.sort((a,b)=>b[0]-a[0]);st.ctop=top.slice(0,50);
+  setCards(nb,am?CFG.n_active:CFG.n,np,am?CFG.pop.act:CFG.pop.all,'pop');$('cU').textContent='';window.__combo_ms=performance.now()-t0;window.__combo_skip=skip;topList();
+  if(skip){$('scan').hidden=false;$('scanP').style.width='100%';$('scanT').innerHTML=`Uwaga: ${skip} z ${Object.keys(CFG.tiles).length} obszarów nie pobrało się (chwilowy błąd serwera) – liczby mogą być zaniżone. <a class="lnk" id="scanR">Ponów</a>`;$('scanR').onclick=()=>scanStats();}}
+
+// ---------- ranking ----------
+const skRows=n=>Array.from({length:n},()=>`<tr><td colspan="4"><div class="sk" style="height:14px;margin:3px 0">&nbsp;</div></td></tr>`).join('');
+function topList(){const tb=$('top');if(!K()){tb.innerHTML='';return;}
+  if(K()===1&&!isNear(st.sel[0])){const id=st.sel[0],n=NETS[id];$('csv').hidden=false;$('thK').textContent='TERYT · rodzaj';$('thD').textContent='do: '+n.short;$('topT').textContent=st.unit==='b'?'Najdalej położone':'Najdalej położone zamieszkane';
+    if(!TOPS.has(id)){TOPS.set(id,null);tb.innerHTML=skRows(6);fetchJson(`top/${id}.json`).then(t=>{TOPS.set(id,t);if(st.sel[0]===id&&K()===1)topList();},()=>TOPS.delete(id));return;}
+    const t=TOPS.get(id);if(!t){tb.innerHTML=skRows(6);return;}const which=st.unit==='b'?(st.act?'act':'all'):'pop',thv=st.th[id],rows=t[which].filter(r=>r[3]>=thv);st.top=rows;
+    tb.innerHTML=rows.slice(0,50).map((r,j)=>`<tr data-j="${j}"><td>${j+1}</td><td>${fkm(r[3])}</td><td>${r[6]>=1?fmt(r[6]):r[6]>0?'<1':'–'}</td><td class="k">${r[4]} · ${esc(r[5])}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">Brak budynków powyżej progu</td></tr>';return;}
+  const rows=st.ctop,f=NETS[st.sel[0]];$('csv').hidden=true;$('topT').textContent=`Spełniające warunki – ${isNear(f.id)?'najbliżej':'najdalej'}: ${f.short}`;$('thD').textContent='do: '+f.short;$('thK').textContent='odległości';
+  if(!rows){tb.innerHTML=skRows(6);return;}
+  tb.innerHTML=rows.map((r,j)=>{const ds=r[3].map((c,q)=>`<span class="dot" style="width:7px;height:7px;background:${NETS[st.sel[q]].fill}"></span>&nbsp;${c===255?'–':fkm(mid(c))}`).join(' ');const best=r[3][0];
+    return `<tr data-c="${j}"><td>${j+1}</td><td>${best===255?'–':fkm(mid(best))}</td><td>${r[4]>=1?fmt(r[4]):r[4]>0?'<1':'–'}</td><td class="k" style="max-width:150px">${ds}</td></tr>`;}).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">Brak budynków spełniających warunki</td></tr>';}
+function csv(){const n=NETS[st.sel[0]],rows=st.top||[],H_=['fid_bubd','teryt','rodzaj','lat','lon','odl_'+n.id+'_m','mieszkancy_szac','najblizszy','najblizszy_lat','najblizszy_lon'];
+  const q=v=>v==null?'':(/[;"\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v);
+  const L=[H_.join(';'),...rows.map(r=>[r[2],r[4],r[5],r[1],r[0],r[3],r[6],r[7],r[9],r[8]].map(q).join(';'))];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'}));a.download=`jakdaleko_${n.id}_top.csv`;a.click();}
+
+// ---------- budynek ----------
+const ATTR=new Map();
+function attrTile(key){if(ATTR.has(key))return ATTR.get(key);const p=fetchBin('a/'+key+'.bin').then(b=>{const n=CFG.tiles[key];return {fid:new Int32Array(b,0,n),teryt:new Uint16Array(b,4*n,n),pop:new Uint16Array(b,6*n,n),snap:new Uint8Array(b,8*n,n),kind:new Uint8Array(b,9*n,n),status:new Uint8Array(b,10*n,n)};});
+  ATTR.set(key,p);if(ATTR.size>30)ATTR.delete(ATTR.keys().next().value);return p;}
+function nearestIn(pos,n,lon,lat,maxDeg,ok){const c=Math.cos(lat*Math.PI/180);let best=-1,bd=maxDeg*maxDeg;for(let i=0;i<n;i++){const dx=(pos[2*i]-lon)*c,dy=pos[2*i+1]-lat,q=dx*dx+dy*dy;if(q<bd&&(!ok||ok(i))){bd=q;best=i;}}return [best,bd];}
+async function building(lon,lat,maxDeg,filter,direct){const z=map.getZoom();let tlon=lon,tlat=lat;const pass=passFn(),okf=(C,A)=>{const pr=pcOn()?priceArr(A):null;return i=>(!st.act||A.act[i])&&pass(C,i,pr);};
+  if(z<BZ&&!direct){let best=null;for(const g of lastShown){if(!ready(g))continue;const A=peek(g.pos),C=g.codes.map(k=>peek(k).code);const [i,q]=nearestIn(A.pos,A.n,lon,lat,maxDeg,filter&&K()?okf(C,A):null);if(i>=0&&(!best||q<best.q))best={q,lon:A.pos[2*i],lat:A.pos[2*i+1]};}
+    if(!best)return null;tlon=best.lon;tlat=best.lat;maxDeg=0.0005;filter=false;}
+  const tx=Math.floor((tlon-CFG.origin[0])/T()),ty=Math.floor((tlat-CFG.origin[1])/T()),cands=[];
+  for(let x=tx-1;x<=tx+1;x++)for(let y=ty-1;y<=ty+1;y++){const k=x+'_'+y;if(CFG.tiles[k]&&((x===tx&&y===ty)||has('P:'+k)))cands.push(k);}
+  let best=null;for(const k of cands){const A=await get('P:'+k);let ok=null;if(filter&&K()){const C=await Promise.all(st.sel.map(id=>get(`D:${id}/${k}`)));ok=okf(C.map(c=>c.code),A);}
+    const [i,q]=nearestIn(A.pos,A.n,tlon,tlat,maxDeg,ok);if(i>=0&&(!best||q<best.q))best={q,k,i,A};}
+  if(!best)return null;const {k,i,A}=best,o=tileOrigin(k);return {key:k,i,act:A.act[i],lon:A.pos[2*i],lat:A.pos[2*i+1],qlon:o[0]+A.q[2*i]/65535*T(),qlat:o[1]+A.q[2*i+1]/65535*T()};}
+
+// ---------- raport o obiekcie ----------
+let GMINY=null,GMAP=null;function gminy(){if(!GMINY)GMINY=fetchJson('q/gminy.json').then(a=>{GMAP=new Map(a.map(g=>[String(g[0]),g]));return a;});return GMINY;}
+let REP=0;
+async function report(b){const run=++REP;st.pick={lon:b.lon,lat:b.lat};st.lines=[];st.rep={b,rows:{}};redraw();$('report').classList.add('on');if(MOBILE)$('panel').classList.remove('open');if(popup)popup.remove();
+  $('rT').textContent='Budynek mieszkalny';$('rS').innerHTML='<span class="sk" style="display:inline-block;width:220px;height:12px">&nbsp;</span>';
+  const ids=[...st.sel,...CFG.categories.flatMap(c=>CFG.networks.filter(n=>n.cat===c.id&&!st.sel.includes(n.id)).map(n=>n.id))];
+  const row=id=>`<div class="rr${st.sel.includes(id)?' on':''}" id="rr_${id}"><span class="dot" style="background:${NETS[id].fill};box-shadow:0 0 0 1.5px ${NETS[id].line} inset"></span><span class="nm">${esc(NETS[id].short)}<small><span class="sk skl" style="display:inline-block">&nbsp;</span></small></span><b class="sk" style="width:54px">&nbsp;</b></div>`;
+  let html=`<div class="kp"><div class="card"><div class="n sk" id="rPop">&nbsp;</div><div class="t">mieszkańców (szac.)</div></div><div class="card"><div class="n sk" id="rNear">&nbsp;</div><div class="t">sieci do 1 km</div></div><div class="card"><div class="n sk" id="rFar">&nbsp;</div><div class="t">sieci dalej niż 5 km</div></div></div>`;
+  if(CFG.price)html+=`<div class="rprice" id="rPrice"><span class="sk" style="display:inline-block;width:200px">&nbsp;</span></div>`;
+  if(K())html+=`<div class="rsec">Wybrane sieci · linie na mapie</div>`+st.sel.map(row).join('');
+  for(const c of CFG.categories){const cs=CFG.networks.filter(n=>n.cat===c.id&&!st.sel.includes(n.id)).map(n=>n.id);if(cs.length)html+=`<div class="rsec">${esc(c.label)}</div>`+cs.map(row).join('');}
+  html+=`<div class="rnote">Odległość piesza po sieci dróg BDOT10k od punktu wewnątrz budynku do najbliższego punktu sieci – ta sama wartość co na mapie (zapis z dokładnością 20 m do 2 km, 100 m do 10 km, 500 m dalej). Linie na mapie pokazują kierunek w linii prostej, nie trasę.</div><div class="rnote" id="rMeta"></div>`;
+  $('rB').innerHTML=html;$('rB').scrollTop=0;
+  if(CFG.price)loadPrice().then(()=>{if(run!==REP)return;const q=priceAt(b.lon,b.lat),e=$('rPrice');if(!e)return;const P=CFG.price,per=`${pmon(P.period[0])} – ${pmon(P.period[1])}`;
+    e.innerHTML=q?`<div class="pv"><span class="sw" style="background:${PC_COL[st.theme][pcIdx(q.v)]}"></span><b>${fmt(q.v)} zł/m²</b><span>mediana cen mieszkań ${q.lvl===1?'w okolicy (~1 km)':'w szerszej okolicy (~5 km)'}</span></div><small>${fmt(q.n)} transakcji (rynek wolny, pojedyncze lokale), ${per} · Rejestr Cen Nieruchomości (GUGiK)${pcOn()?` · warunek: ${st.pc.op==='lt'?'taniej niż':'drożej niż'} ${fmt(st.pc.v)} zł/m² – ${(st.pc.op==='lt'?q.v<st.pc.v:q.v>=st.pc.v)?'spełniony':'niespełniony'}`:''}</small>`
+      :`<div class="pv"><b>Ceny mieszkań: brak danych</b></div><small>Mniej niż ${P.min_n} transakcji w promieniu ~5 km w okresie ${per} (RCN, GUGiK).</small>`;}).catch(()=>{const e=$('rPrice');if(e)e.textContent='';});
+  attrTile(b.key).then(async a=>{if(run!==REP)return;const i=b.i,pop=a.pop[i]/10,kind=CFG.kinds[a.kind[i]],status=CFG.statuses[a.status[i]],ter=CFG.teryt[a.teryt[i]],snap=a.snap[i];
+    $('rT').textContent=cap(kind)||'Budynek mieszkalny';$('rPop').classList.remove('sk');$('rPop').textContent=pop>=1?fmt(pop):pop>0?'< 1':'0';
+    $('rS').innerHTML=`${esc(status||'')}${b.act?'':' · nieużytkowany'} · TERYT powiatu ${esc(ter||'–')}<br>${b.lat.toFixed(5)}, ${b.lon.toFixed(5)} · BUBD fid ${a.fid[i]}`;
+    $('rMeta').textContent=`Dojście budynek–droga: ${snap===255?'–':snap+' m'}. Mieszkańcy: szacunek z obwodów spisowych NSP 2021 rozdzielonych na budynki. Stan danych ${CFG.date}.`;}).catch(()=>{});
+  let done=0,near=0,far=0;window.__rt0=performance.now();
+  const one=async id=>{const n=NETS[id];try{const [D,r]=await Promise.all([get(`D:${id}/${b.key}`),rankAt(id,b.key,b.i)]);const code=D.code[b.i];let p=null,name='';
+      if(code!==255){const U=code>=254?60000:dec(code+1);p=nearestByRank(await poiAround(id,b.qlon,b.qlat,(U*1.1+150)/111320),b.qlon,b.qlat,code,r);if(p)name=await poiName(id,p[3]);}
+      if(run!==REP)return;const res={id,code,p,name,type:p?n.types[p[2]]:''};st.rep.rows[id]=res;if(code!==255&&dec(code+1)<=1000)near++;if(code!==255&&dec(code)>=5000)far++;
+      const el=$('rr_'+id);if(el){const sel=st.sel.includes(id);const meet=sel&&code!==255&&(isNear(id)?dec(code)<st.th[id]:dec(code)>=st.th[id]);el.classList.toggle('far',meet&&!isNear(id));el.classList.toggle('ok',meet&&isNear(id));
+        el.innerHTML=`${sel?`<span class="lk" style="background:${n.fill}"></span>`:`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>`}<span class="nm">${esc(n.short)}<small>${p?esc(name||n.short)+(res.type&&res.type!==name&&!n.combined?' · '+esc(res.type):''):code===255?'brak połączenia z siecią dróg':'punkt nieustalony'}</small></span><b>${fcode(code)}</b>`;}
+      if(st.sel.includes(id))spider();}catch(e){if(run!==REP)return;const el=$('rr_'+id);if(el){const x=el.querySelector('b');x.classList.remove('sk');x.textContent='–';}}
+    if(run!==REP)return;if(++done===ids.length){for(const [k,v] of [['rNear',near],['rFar',far]]){$(k).classList.remove('sk');$(k).textContent=`${v} z ${ids.length}`;}window.__report_ms=performance.now()-window.__rt0;}};
+  let qi=0;const W=async()=>{while(qi<ids.length)await one(ids[qi++]);};
+  await Promise.all(Array.from({length:8},W));if(run===REP)fitReport();}
+function spider(){const R=st.rep;if(!R)return;const b=R.b;st.lines=st.sel.map(id=>R.rows[id]).filter(r=>r&&r.p).map(r=>{const c=hex(NETS[r.id].fill),e=[r.p[0],r.p[1]];
+    return {path:[[b.lon,b.lat],e],lab:[(b.lon+e[0])/2,(b.lat+e[1])/2],color:c.concat(255),text:`${NETS[r.id].short} ${fcode(r.code)}`};});redraw();}
+function fitReport(){const R=st.rep;if(!R)return;const pts=[[R.b.lon,R.b.lat],...st.lines.map(l=>l.path[1])];
+  const bb=pts.reduce((b,p)=>[Math.min(b[0],p[0]),Math.min(b[1],p[1]),Math.max(b[2],p[0]),Math.max(b[3],p[1])],[180,90,-180,-90]);
+  map.setPadding({top:0,right:0,bottom:0,left:0});const H_=map.getContainer().clientHeight,W_=map.getContainer().clientWidth;let pad=MOBILE?{top:70,bottom:Math.round(H_*0.62)+16,left:30,right:30}:{top:60,bottom:60,left:440,right:480};
+  if(MOBILE&&H_-pad.bottom-pad.top<110)pad.bottom=Math.max(20,H_-pad.top-110);if(!MOBILE&&W_-pad.left-pad.right<200){pad.left=40;pad.right=40;}
+  if(pts.length<2){map.easeTo({center:pts[0],zoom:Math.max(map.getZoom(),15),duration:600});return;}
+  map.fitBounds([[bb[0]-.0008,bb[1]-.0008],[bb[2]+.0008,bb[3]+.0008]],{padding:pad,maxZoom:16.5,duration:700});}
+function closeReport(){$('report').classList.remove('on');st.rep=null;st.lines=[];st.pick=null;REP++;redraw();}
+async function openAt(lon,lat,maxDeg,filter,direct){try{const b=await building(lon,lat,maxDeg,filter,direct);if(!b){toast('Brak budynku mieszkalnego w pobliżu');return false;}await report(b);return true;}catch(e){console.warn(e);return false;}}
+async function fly(r){await openAt(r[0],r[1],0.0003,false,true);}
+async function flyCombo(r){const A=await get('P:'+r[1]),i=r[2];await openAt(A.pos[2*i],A.pos[2*i+1],0.00002,false,true);}
+
+// ---------- wyszukiwarka ----------
+const SH=new Map();function shard(p){if(!SH.has(p))SH.set(p,tracked(fetch(`q/${p}.json`).then(r=>r.ok?r.json():[]).catch(()=>[])));return SH.get(p);}
+const ICON={m0:'🏙',m1:'🏡',m2:'🏘',m3:'📍',u:'🛣',g:'🗺',a:'🏠',p:'•'};
+let SQ=0,SRES=[],SON=0;
+function openSearch(){$('search').classList.add('on');const q=$('sq');q.value='';setTimeout(()=>q.focus(),0);SRES=[];
+  $('sres').innerHTML=`<div class="sempty">Wpisz np. <b>Floriańska 3 Kraków</b>, <b>Zakopane</b>, <b>gmina Wąchock</b>, kod TERYT gminy <b>1465011</b> albo nazwę punktu wybranej sieci (np. kod paczkomatu).</div>`;}
+function closeSearch(){$('search').classList.remove('on');}
+async function doSearch(q){const run=++SQ,toks=norm(q).split(' ').filter(Boolean),words=toks.filter(t=>!/^\d/.test(t)&&t.length>=2),nums=toks.filter(t=>/^\d/.test(t));
+  if(!toks.length){openSearch();$('sq').value=q;return;}const res=[],qt=q.trim();
+  const has_=(txt,ws)=>{const w=' '+norm(txt)+' ';return ws.every(t=>w.includes(' '+t));};
+  if(/^\d{2,7}$/.test(qt)){const G=await gminy();for(const g of G)if(String(g[0]).startsWith(qt)){res.push({t:'g',tt:'gm. '+g[1],st:'gmina · TERYT '+g[0],lon:g[2],lat:g[3],z:11,ex:true});if(res.length>=10)break;}}
+  if(words.length){const sh=[...new Set(words.slice(0,3).map(w=>w.slice(0,2)))],lists=await Promise.all(sh.map(shard));if(run!==SQ)return;const seen=new Set();
+    for(const L of lists)for(const e of L){if(seen.has(e)||!has_(e[0],words))continue;seen.add(e);const sep=e[3]==='u'?', ':' · ',ix=e[0].indexOf(sep),a=ix>0?e[0].slice(0,ix):e[0],rest=ix>0?e[0].slice(ix+sep.length):'';
+      res.push({t:e[3],tt:a,st:(e[3]==='u'?'ulica · ':'')+rest,lon:e[1],lat:e[2],z:e[3]==='u'?16.5:e[3]==='m0'?12:14,ex:words.every(w=>norm(a).split(' ').includes(w))||norm(a)===words.join(' ')});if(res.length>400)break;}
+    const G=await gminy();const gw=words.filter(w=>w!=='gmina'&&w!=='gm');if(gw.length)for(const g of G)if(has_(g[1],gw))res.push({t:'g',tt:'gm. '+g[1],st:'gmina · TERYT '+g[0],lon:g[2],lat:g[3],z:11,ex:norm(g[1]).startsWith(gw.join(' '))&&words.includes('gmina')});
+    for(const id of st.sel){const n=NETS[id];if(!n.names)continue;try{const [nm,P]=await Promise.all([namesOf(id),poi(id)]);let c=0;for(let i=0;i<nm.length&&c<5;i++)if(has_(nm[i],[...words,...nums])){res.push({t:'p',tt:nm[i],st:n.label,lon:P.lo[i]/1e6,lat:P.la[i]/1e6,z:17,col:n.fill});c++;}}catch(e){}}}
+  if(run!==SQ)return;
+  const rk=r=>(r.ex?0:20)+({m0:0,g:1,m1:2,u:3,m2:4,p:5,m3:6,a:7}[r.t]??8);res.sort((a,b)=>rk(a)-rk(b)||a.tt.length-b.tt.length);
+  let out=res.slice(0,12);const wantPh=words.length&&(nums.length||!res.length);if(wantPh)out=[{t:'a',tt:'Szukam adresu…',st:'Photon · OpenStreetMap',wait:true},...out];renderRes(out,q);
+  if(wantPh){try{const c=map.getCenter(),u=`https://photon.komoot.io/api/?q=${encodeURIComponent(qt)}&limit=6&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}&bbox=14.0,49.0,24.2,54.9`;
+    const j=await tracked(fetch(u).then(r=>r.json()));if(run!==SQ)return;
+    const ph=(j.features||[]).filter(f=>f.properties.countrycode==='PL').map(f=>{const p=f.properties,[lo,la]=f.geometry.coordinates,nm=[p.street||p.name,p.housenumber].filter(Boolean).join(' ')||p.name;
+      return {t:p.housenumber?'a':'m3',tt:nm,st:[p.postcode,p.city||p.town||p.village||p.county,p.state].filter(Boolean).join(', ')+' · Photon/OSM',lon:lo,lat:la,z:p.housenumber||p.street?17:14};});
+    renderRes([...ph,...out.filter(r=>!r.wait)].slice(0,14),q);}catch(e){if(run===SQ)renderRes(out.filter(r=>!r.wait),q);}}}
+function renderRes(r,q){SRES=r;SON=0;$('sres').innerHTML=r.length?r.map((x,i)=>`<div class="res${i===0?' on':''}" data-i="${i}"><span class="ic"${x.col?` style="background:${x.col};color:#fff"`:''}>${ICON[x.t]||'📍'}</span><div style="min-width:0"><div class="tt">${esc(x.tt)}</div><div class="st">${esc(x.st||'')}</div></div></div>`).join(''):`<div class="sempty">Brak wyników dla „${esc(q)}”. Spróbuj samej nazwy miejscowości lub ulicy.</div>`;}
+async function pickRes(i){const r=SRES[i];if(!r||r.wait)return;closeSearch();const z=r.z||15;map.setPadding({top:0,right:0,bottom:0,left:0});
+  map.easeTo({center:[r.lon,r.lat],zoom:z,duration:800,offset:MOBILE?[0,z>=16?-Math.round(innerHeight*0.33):-120]:[z>=16?-20:200,0]});
+  if(z>=16){await new Promise(res=>map.once('moveend',res));await openAt(r.lon,r.lat,(r.t==='u'?300:150)/111320,false,true);}else if(st.rep)closeReport();}
+
+// ---------- panel ----------
+function setMode(m){st.mode=m;document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('body').classList.toggle('combo',m==='combo');
+  if(m==='one'&&K()>1)st.sel=[st.sel[0]];if(m==='one'&&!K())st.sel=['any_locker'];document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();}
+let warned=false;
+function toggleNet(id){if(st.mode==='one')st.sel=[id];else{const i=st.sel.indexOf(id);if(i>=0)st.sel.splice(i,1);else{if(K()>=MAXSEL){toast(`Limit: ${MAXSEL} sieci naraz – usuń którąś, aby dodać „${NETS[id].short}”`);return false;}
+    if(st.req[id]==null)st.req[id]=logicState()!=='any';st.sel.push(id);if(K()>8&&MOBILE&&!warned){warned=true;toast('Dużo sieci – pierwsze liczenie dla całej Polski potrwa dłużej');}}}
+  document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();return true;}
+function applyPreset(p){st.mode='combo';document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m==='combo'));$('body').classList.add('combo');
+  st.sel=p.sel.map(s=>s[0]).filter(id=>NETS[id]);p.sel.forEach(([id,m,d])=>{if(NETS[id]){st.th[id]=m;st.dir[id]=d==='near'?'near':'far';st.req[id]=p.mode!=='any';}});
+  st.pc=p.price&&CFG.price?{on:true,op:p.price[0],v:p.price[1]}:{...st.pc,on:false};const go=()=>{document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('on',b.dataset.p===p.id));selChanged();};
+  if(st.pc.on)loadPrice().then(go,go);else go();}
+function pickBtn(){const b=$('pickBtn');if(st.mode==='one'&&K()){const n=NETS[st.sel[0]];b.innerHTML=`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span><span class="pt">Sieć: ${esc(n.short)}</span><span class="pv">zmień ▾</span>`;}
+  else b.innerHTML=`<span style="color:var(--acc);font-size:18px;line-height:1">＋</span><span class="pt">${K()?`Sieci: ${K()} z ${MAXSEL} – dodaj lub usuń`:'Wybierz sieci do połączenia'}</span><span class="pv">▾</span>`;}
+function selChanged(){st.ctop=null;document.querySelectorAll('#nets .chip,#plist .chip').forEach(b=>{const on=st.sel.includes(b.dataset.n);b.classList.toggle('on',on);b.classList.toggle('off',st.mode==='combo'&&!on&&K()>=MAXSEL);b.setAttribute('aria-pressed',on);});
+  $('netT').textContent=st.mode==='one'?'Wybierz sieć':`Wybierz sieci do połączenia · ${K()}/${MAXSEL}`;$('clear').hidden=st.mode!=='combo'||!K();pickBtn();pinfo();
+  const ls=logicState();document.querySelectorAll('#logic button').forEach(b=>b.classList.toggle('on',b.dataset.l===ls));$('logic').hidden=K()<2;
+  $('logicH').hidden=K()<2;$('logicH').textContent=ls==='all'?'Budynek musi spełnić wszystkie warunki. Przełącz „musi”/„lub” przy sieci, aby mieszać.':ls==='any'?'Wystarczy jeden z warunków.':'Muszą być spełnione warunki „musi” oraz co najmniej jeden z „lub”.';
+  renderSel();st.sel.forEach(id=>poi(id).then(redraw,()=>{}));
+  $('poiCnt').textContent=K()?fmt(st.sel.reduce((s,id)=>s+NETS[id].points,0)):'';$('poiDot').style.background=K()?NETS[st.sel[0]].fill:'#ccc';
+  $('legT').textContent=!K()?'':K()===1?'Odległość piesza do: '+NETS[st.sel[0]].label:'Kolor: odległość do: '+NETS[st.sel[0]].short+' (stuknij nazwę innej sieci, by zmienić)';
+  srcBox();if(st.rep)report(st.rep.b);else redraw();stats();urlSave();}
+const vtxt=id=>(isNear(id)?'< ':'≥ ')+fkm(st.th[id]);
+const PCMIN=3000,PCMAX=25000;
+function pcRow(){if(!CFG.price||!K())return '';const P=CFG.price;if(!st.pc.on)return `<button class="addpc" id="pcAdd">＋ Warunek: cena mieszkań (zł/m²)</button>`;
+  return `<div class="selrow pcrow"><div class="slh"><span class="dot" style="background:linear-gradient(90deg,${PC_COL[st.theme][1]},${PC_COL[st.theme][5]})"></span><span class="t">Cena mieszkań (mediana RCN)</span><span class="v" id="pcV">${st.pc.op==='lt'?'< ':'≥ '}${fmt(st.pc.v)} zł/m²</span><button class="x" id="pcX" aria-label="Usuń warunek ceny">×</button></div>
+    <div class="rc"><button class="mini${st.pc.op==='lt'?' near':''}" id="pcOp">${st.pc.op==='lt'?'taniej niż':'drożej niż'} ⇄</button><span class="mini musi">musi</span></div>
+    <input type="range" min="${PCMIN}" max="${PCMAX}" step="250" value="${st.pc.v}" id="pcS" aria-label="Próg ceny mieszkań w zł za metr kwadratowy">
+    <div class="hint" style="margin-top:0">Mediana z transakcji ${pmon(P.period[0])} – ${pmon(P.period[1])} w siatce ~1 km (inaczej ~5 km); budynki bez danych (mniej niż ${P.min_n} transakcji) nie spełniają warunku.</div></div>`;}
+function pcBind(el){const a=el.querySelector('#pcAdd');if(a)a.onclick=()=>{st.pc.on=true;loadPrice().then(()=>{if(!$('lyC').checked){$('lyC').checked=true;lyC();}selChanged();},()=>toast('Nie udało się wczytać cen'));};
+  const x=el.querySelector('#pcX');if(x)x.onclick=()=>{st.pc.on=false;unPreset();selChanged();};
+  const o=el.querySelector('#pcOp');if(o)o.onclick=()=>{st.pc.op=st.pc.op==='lt'?'ge':'lt';unPreset();selChanged();};
+  const s=el.querySelector('#pcS');if(s)s.addEventListener('input',()=>{st.pc.v=+s.value;$('pcV').textContent=(st.pc.op==='lt'?'< ':'≥ ')+fmt(st.pc.v)+' zł/m²';unPreset();redraw();clearTimeout(scanT);scanT=setTimeout(()=>{if(SCAN.key===scanKey()&&SCAN.done>=SCAN.total)computeCombo();else stats();},40);urlSave();});}
+const unPreset=()=>document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));
+function renderSel(){const el=$('sel');if(!K()){el.innerHTML=`<div class="hint">${MOBILE?'Stuknij przycisk powyżej':'Wybierz sieci z listy poniżej'} albo gotowy zestaw.</div>`;return;}
+  const cb=st.mode==='combo'&&K()>1;
+  el.innerHTML=st.sel.map((id,j)=>{const n=NETS[id];return `<div class="selrow"><div class="slh"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${cb?`<button class="t" data-f="${id}" title="Koloruj mapę wg tej sieci">${esc(n.short)}${j===0?' 🎨':''}</button>`:`<span class="t">${K()>1?'':'Min. odległość do: '}${esc(n.short)}</span>`}<span class="v">${vtxt(id)}</span>${st.mode==='combo'?`<button class="x" data-x="${id}" aria-label="Usuń ${esc(n.short)}">×</button>`:''}</div>
+    ${st.mode==='combo'?`<div class="rc"><button class="mini${isNear(id)?' near':''}" data-d="${id}">${isNear(id)?'blisko (bliżej niż)':'daleko (dalej niż)'} ⇄</button>${cb?`<button class="mini${isReq(id)?'':' opt'}" data-r="${id}">${isReq(id)?'musi':'lub'} ⇄</button>`:''}</div>`:''}
+    <input type="range" min="0" max="1000" step="1" value="${m2s(st.th[id],n.max)}" data-s="${id}" aria-label="Próg odległości do: ${esc(n.short)}"></div>`;}).join('')+(K()>1?'':`<div class="hint" style="display:flex;justify-content:space-between;margin-top:0"><span>0</span><span>${fkm(NETS[st.sel[0]].max/4)}</span><span>${fkm(NETS[st.sel[0]].max)}</span></div>`)+pcRow();pcBind(el);
+  el.querySelectorAll('input[type=range][data-s]').forEach(s=>s.addEventListener('input',()=>{const id=s.dataset.s,n=NETS[id];st.th[id]=dec(enc(s2m(+s.value,n.max)));s.closest('.selrow').querySelector('.v').textContent=vtxt(id);
+    document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));redraw();if(K()===1&&!isNear(st.sel[0]))stats();else{clearTimeout(scanT);scanT=setTimeout(()=>{if(SCAN.key===scanKey()&&SCAN.done>=SCAN.total)computeCombo();else stats();},40);}urlSave();}));
+  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>toggleNet(b.dataset.x));
+  const un=()=>document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));
+  el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;st.dir[id]=isNear(id)?'far':'near';un();selChanged();});
+  el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const id=b.dataset.r;st.req[id]=!isReq(id);un();selChanged();});
+  el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const id=b.dataset.f,i=st.sel.indexOf(id);if(i>0){st.sel.splice(i,1);st.sel.unshift(id);selChanged();}});}
+// ---------- wybór sieci (pełnoekranowy na telefonie) ----------
+function pinfo(){const e=$('pinfo');if(e)e.textContent=st.mode==='one'?'Stuknij sieć, aby ją pokazać na mapie.':`Wybrane: ${K()} z ${MAXSEL}. Stuknij, aby dodać lub usunąć, potem „Gotowe”.`;}
+function openPicker(){$('picker').classList.add('on');$('pq').value='';filterPicker('');pinfo();$('plist').scrollTop=0;if(!MOBILE)setTimeout(()=>$('pq').focus(),30);history.pushState({pk:1},'');}
+function closePicker(back){if(!$('picker').classList.contains('on'))return;$('picker').classList.remove('on');if(!back&&history.state&&history.state.pk)history.back();}
+function filterPicker(q){const t=norm(q).trim();document.querySelectorAll('#plist .pcat').forEach(c=>{let any=0;c.querySelectorAll('.chip').forEach(b=>{const n=NETS[b.dataset.n],ok=!t||norm(n.label+' '+n.short+' '+n.id).includes(t);b.hidden=!ok;if(ok)any++;});c.hidden=!any;});}
+function buildPicker(){$('plist').innerHTML=CFG.categories.map(c=>`<div class="pcat" id="pc_${c.id}"><div class="cath">${esc(c.label)}</div><div class="grid">${CFG.networks.filter(n=>n.cat===c.id).map(n=>`<button class="chip${n.combined?' comb':''}" data-n="${n.id}"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${esc(n.short)}<span class="ck">✓</span></button>`).join('')}</div></div>`).join('');
+  $('ptabs').innerHTML=CFG.categories.map(c=>`<button data-c="${c.id}">${esc(c.label)}</button>`).join('');
+  $('ptabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;const el=$('pc_'+b.dataset.c);if(el)$('plist').scrollTop=el.offsetTop-$('plist').offsetTop;};
+  $('plist').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const one=st.mode==='one';toggleNet(b.dataset.n);if(one)closePicker();};
+  $('pq').addEventListener('input',()=>filterPicker($('pq').value));$('pq').addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
+  $('pDone').onclick=()=>closePicker();$('picker').addEventListener('click',e=>{if(e.target.id==='picker')closePicker();});
+  addEventListener('popstate',()=>closePicker(true));$('pickBtn').onclick=openPicker;}
+// ---------- arkusz na telefonie: przeciąganie uchwytu, stuknięcie przełącza ----------
+function sheet(){const P=$('panel'),G=$('grab');let y0=0,h0=0,drag=false,moved=false;
+  const snaps=()=>[310,Math.round(innerHeight*.55),Math.round(innerHeight*.88)];
+  const setH=h=>{P.style.height=h+'px';P.classList.toggle('open',h>320);};
+  G.addEventListener('touchstart',e=>{y0=e.touches[0].clientY;h0=P.getBoundingClientRect().height;drag=true;moved=false;P.classList.add('drag');},{passive:true});
+  G.addEventListener('touchmove',e=>{if(!drag)return;const dy=y0-e.touches[0].clientY;if(Math.abs(dy)>6)moved=true;if(moved)P.style.height=Math.max(140,Math.min(innerHeight*.92,h0+dy))+'px';e.preventDefault();},{passive:false});
+  G.addEventListener('touchend',()=>{if(!drag)return;drag=false;P.classList.remove('drag');if(!moved)return;const h=P.getBoundingClientRect().height;setH(snaps().reduce((a,v)=>Math.abs(v-h)<Math.abs(a-h)?v:a));});
+  G.onclick=()=>{if(moved){moved=false;return;}const s=snaps(),h=P.getBoundingClientRect().height;setH(h>320?s[0]:s[2]);};}
+function srcBox(){const li=n=>`<li><b>${esc(n.label)}</b>${n.source_kind==='OSM'?'<span class="tag osm">OSM</span>':n.source_kind?`<span class="tag">${esc(n.source_kind)}</span>`:''}<br>${esc(n.source)} · ${fmt(n.points)} pkt · stan ${esc(n.source_date)}</li>`;
+  $('srcBox').innerHTML=`<div class="lab">Źródła</div><ul class="src">${st.sel.map(id=>li(NETS[id])).join('')}</ul><details><summary>Wszystkie warstwy (${CFG.networks.length})</summary><ul class="src">${CFG.networks.filter(n=>!st.sel.includes(n.id)).map(li).join('')}</ul></details>`;}
+function urlSave(){const u=new URL(location.href);if(K()){u.searchParams.set('s',st.sel.join(','));u.searchParams.set('t',st.sel.map(id=>st.th[id]).join(','));}else{u.searchParams.delete('s');u.searchParams.delete('t');}
+  u.searchParams.delete('l');if($('lyC')&&$('lyC').checked)u.searchParams.set('ly','c');else u.searchParams.delete('ly');const cb=st.mode==='combo',d=st.sel.map(id=>isNear(id)?'n':'f').join(''),r=st.sel.map(id=>isReq(id)?'m':'l').join('');
+  if(cb&&/n/.test(d))u.searchParams.set('d',d);else u.searchParams.delete('d');if(cb&&K()>1&&/l/.test(r))u.searchParams.set('r',r);else u.searchParams.delete('r');if(cb&&K()===1)u.searchParams.set('m','c');else u.searchParams.delete('m');if(st.pc.on&&K())u.searchParams.set('pc',st.pc.op+st.pc.v);else u.searchParams.delete('pc');history.replaceState(history.state,'',u);}
+function buildUI(){CFG.networks.forEach(n=>{NETS[n.id]=n;st.th[n.id]=n.id==='przystanek'||n.id==='rower'?1000:n.id==='poz'||n.id==='szkola'||n.id==='przystanek_kolejowy'?3000:n.max>=50000?10000:2000;});
+  POPLUT=new Float32Array(128);for(let c=0;c<128;c++)POPLUT[c]=c?Math.expm1(c/CFG.popk):0;
+  $('nets').innerHTML=`<div class="nf"><input id="nq" type="search" placeholder="Szukaj wśród ${CFG.networks.length} sieci…" autocomplete="off"><div class="ntabs" id="ntabs"><button data-c="" class="on">Wszystkie</button>${CFG.categories.map(c=>`<button data-c="${c.id}">${esc(c.label)}</button>`).join('')}</div></div>`+CFG.categories.map(c=>`<div class="ncat" data-c="${c.id}"><div class="cath">${esc(c.label)}</div><div class="grid">${CFG.networks.filter(n=>n.cat===c.id).map(n=>`<button class="chip${n.combined?' comb':''}" data-n="${n.id}" title="${esc(n.label)} · ${fmt(n.points)} pkt"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${esc(n.short)}<span class="ck">✓</span></button>`).join('')}</div></div>`).join('');
+  document.querySelectorAll('#nets .chip').forEach(b=>b.onclick=()=>toggleNet(b.dataset.n));
+  let ncat='';const nfilt=()=>{const t=norm($('nq').value).trim();document.querySelectorAll('#nets .ncat').forEach(c=>{let any=0;c.querySelectorAll('.chip').forEach(b=>{const n=NETS[b.dataset.n],ok=(!ncat||ncat===c.dataset.c||t)&&(!t||norm(n.label+' '+n.short+' '+n.id+' '+(n.types||[]).join(' ')).includes(t));b.hidden=!ok;if(ok)any++;});c.hidden=!any;});};
+  $('nq').addEventListener('input',nfilt);$('ntabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;ncat=b.dataset.c;document.querySelectorAll('#ntabs button').forEach(x=>x.classList.toggle('on',x===b));nfilt();};
+  $('presets').innerHTML=CFG.presets.map(p=>`<button class="preset" data-p="${p.id}" title="${esc(p.sel.filter(([id])=>NETS[id]).map(([id,m,d])=>NETS[id].short+(d==='near'?' < ':' ≥ ')+fkm(m)).join(p.mode==='any'?' lub ':', ')+(p.price?`, cena ${p.price[0]==='lt'?'<':'≥'} ${fmt(p.price[1])} zł/m²`:''))}">${esc(p.label)}</button>`).join('');
+  document.querySelectorAll('.preset').forEach(b=>b.onclick=()=>applyPreset(CFG.presets.find(p=>p.id===b.dataset.p)));
+  document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+  document.querySelectorAll('#logic button').forEach(b=>b.onclick=()=>{st.sel.forEach(id=>st.req[id]=b.dataset.l==='all');document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();});
+  $('clear').onclick=()=>{st.sel=[];selChanged();};
+  document.querySelectorAll('#unit button').forEach(b=>{b.classList.toggle('on',b.dataset.u===st.unit);b.onclick=()=>{if(b.disabled)return;st.unit=b.dataset.u;document.querySelectorAll('#unit button').forEach(x=>x.classList.toggle('on',x===b));stats();};});
+  const S=CFG.stats||{},g=(k,f='people')=>S[k]?fbig(S[k][f]):'–';
+  $('about').innerHTML=`<div class="lab">Metoda</div>${esc(CFG.method)}<br><br><b>Ludność:</b> ${fmt(CFG.pop.all)} osób z obwodów spisowych GUS NSP 2021 rozdzielonych na budynki mieszkalne proporcjonalnie do powierzchni × liczby kondygnacji (BDOT10k) – szacunek.<br><br><b>W skrócie:</b> ${g('poz>3000m')} osób ma ponad 3 km do przychodni POZ; ${g('przystanek_kolejowy>3000m')} ponad 3 km do przystanku kolejowego; ${g('any_locker>2000m')} ponad 2 km do automatu paczkowego; ${g('wykluczenie_all3')} jest jednocześnie daleko od szkoły (3 km), POZ (5 km) i przystanku (1 km).<br><br>${CFG.price?`<b>Ceny mieszkań:</b> mediana zł/m² z ${fmt(CFG.price.used)} transakcji lokalami mieszkalnymi (wolny rynek, jeden lokal w akcie; ${pmon(CFG.price.period[0])} – ${pmon(CFG.price.period[1])}) z Rejestru Cen Nieruchomości GUGiK (otwarte dane), w siatce ~1 km i ~5 km; komórki z mniej niż ${CFG.price.min_n} transakcjami są ukryte. Dane z ${CFG.price.powiaty_with_tx} powiatów.<br><br>`:''}Budynki i drogi: BDOT10k (GUGiK). Podkład © CARTO, © OpenStreetMap. Opis źródeł i kod: README w repozytorium. Stan danych: ${CFG.date}.`;}
+function initMap(){map=new maplibregl.Map({container:'map',style:STY[st.theme],center:[19.3,52.0],zoom:MOBILE?4.9:5.9,minZoom:4.3,maxZoom:18,attributionControl:{compact:true},hash:true,dragRotate:false,pitchWithRotate:false});
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');map.addControl(new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true},fitBoundsOptions:{maxZoom:15}}),'top-right');
+  if(!MOBILE)map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');map.touchZoomRotate.disableRotation();
+  overlay=new deck.MapboxOverlay({interleaved:true,layers:[],getTooltip:({index,layer,object})=>{if(layer&&object&&layer.id.startsWith('price:'))return {html:`<b>${fmt(object.v)} zł/m²</b><br>mediana z ${fmt(object.n)} transakcji · siatka ${layer.id.includes('g1')?'~1 km':'~5 km'}`};if(!layer||index<0||!layer.id.startsWith('poi:'))return null;const id=layer.id.slice(4),P=POIS.get(id);return {html:`<b>${esc(NETS[id].label)}</b><br>${esc(NETS[id].types[P.ty[index]]||'')}`};}});
+  map.addControl(overlay);map.on('zoom',redraw);map.on('moveend',redraw);
+  map.on('click',async e=>{const pk=overlay.pickObject({x:e.point.x,y:e.point.y,radius:6,layerIds:st.sel.map(id=>'poi:'+id)});
+    if(pk&&pk.layer&&pk.index>=0){const id=pk.layer.id.slice(4),n=NETS[id],P=POIS.get(id),i=pk.index,nm=await poiName(id,i).catch(()=>'');if(popup)popup.remove();
+      popup=new maplibregl.Popup({offset:10,maxWidth:'300px'}).setLngLat([P.lo[i]/1e6,P.la[i]/1e6]).setHTML(`<div class="pp"><h3>${esc(nm||n.label)}</h3><div class="s">${esc(n.label)} · ${esc(n.types[P.ty[i]]||'')}<br>${esc(n.source)}</div></div>`).addTo(map);return;}
+    const mpp=40075016.686*Math.cos(e.lngLat.lat*Math.PI/180)/(512*Math.pow(2,map.getZoom())),maxDeg=Math.max(15,mpp*(MOBILE?14:9))/111320;
+    let b=await building(e.lngLat.lng,e.lngLat.lat,maxDeg,true).catch(()=>null);if(!b)b=await building(e.lngLat.lng,e.lngLat.lat,Math.max(80,mpp*16)/111320,false,map.getZoom()>=BZ).catch(()=>null);
+    if(!b){if(st.rep)closeReport();return;}report(b);});
+  map.on('style.load',()=>{symId=null;const s=map.getStyle();for(const l of (s&&s.layers)||[]){if(l.type==='symbol'&&l.layout&&l.layout['text-field']){try{map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name'],['get','name_en']]);}catch(e){}}}redraw();});}
+$('mtheme').onclick=()=>$('theme').onclick();$('theme').onclick=()=>{st.theme=st.theme==='light'?'dark':'light';localStorage.setItem('jd-theme',st.theme);document.documentElement.classList.toggle('dark',st.theme==='dark');buildLUT();drawHist();if(PRICE)pcLegend();map.setStyle(STY[st.theme],{diff:false});};
+if(MOBILE)sheet();else $('grab').onclick=()=>$('panel').classList.toggle('open');
+['lyB','lyU','lyP'].forEach(id=>$(id).addEventListener('change',redraw));
+function lyC(){const on=$('lyC').checked;$('pcLeg').hidden=!on;if(on)loadPrice().then(()=>{pcLegend();redraw();},()=>toast('Nie udało się wczytać cen'));else redraw();}
+function pcLegend(){const c=PC_COL[st.theme];$('pcLeg').innerHTML=`<div class="pcl">${c.map((x,i)=>`<span><i style="background:${x}"></i>${i===0?'< '+fmt(PC_STOPS[0]/1000)+' tys.':i===c.length-1?'≥ '+fmt(PC_STOPS[i-1]/1000)+' tys.':fmt(PC_STOPS[i-1]/1000)+'–'+fmt(PC_STOPS[i]/1000)}</span>`).join('')}</div><div class="hint" style="margin:4px 0 0">zł/m², mediana ${pmon(CFG.price.period[0])} – ${pmon(CFG.price.period[1])}, ≥ ${CFG.price.min_n} transakcji w komórce · RCN (GUGiK)</div>`;}
+$('lyC').addEventListener('change',()=>{lyC();urlSave();});
+$('act').addEventListener('change',()=>{st.act=$('act').checked;redraw();stats();});
+$('top').addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;if(tr.dataset.j!=null)fly(st.top[+tr.dataset.j]);else if(tr.dataset.c!=null)flyCombo(st.ctop[+tr.dataset.c]);});
+$('csv').onclick=csv;$('rX').onclick=closeReport;$('rPrint').onclick=()=>window.print();
+$('dsearch').onclick=openSearch;$('msearch').onclick=openSearch;$('sx').onclick=closeSearch;
+$('search').addEventListener('click',e=>{if(e.target.id==='search')closeSearch();});
+let sqT=0;$('sq').addEventListener('input',()=>{clearTimeout(sqT);sqT=setTimeout(()=>doSearch($('sq').value),180);});
+$('sq').addEventListener('keydown',e=>{const n=SRES.length;if(e.key==='Escape')closeSearch();else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!n)return;SON=(SON+(e.key==='ArrowDown'?1:n-1))%n;document.querySelectorAll('.res').forEach((r,i)=>r.classList.toggle('on',i===SON));}else if(e.key==='Enter'){e.preventDefault();pickRes(SON);}});
+$('sres').addEventListener('click',e=>{const r=e.target.closest('.res');if(r)pickRes(+r.dataset.i);});
+document.addEventListener('keydown',e=>{const t=document.activeElement&&document.activeElement.tagName;if(e.key==='/'&&!$('search').classList.contains('on')&&t!=='INPUT'){e.preventDefault();openSearch();}else if(e.key==='Escape'&&st.rep&&!$('search').classList.contains('on'))closeReport();});
+(async()=>{window.__t0=performance.now();let got=0;const tick=x=>{got++;$('lp').style.width=(100*got/5)+'%';return x;};
+  try{CFG=await (await fetch('config.json')).json();tick();buildUI();buildPicker();
+    const q=new URLSearchParams(location.search),qs=(q.get('s')||'').split(',').filter(id=>NETS[id]).slice(0,MAXSEL),qt=(q.get('t')||'').split(',').map(Number);
+    qs.forEach((id,i)=>{if(qt[i]>=0&&isFinite(qt[i]))st.th[id]=qt[i];});const qd=q.get('d')||'',qr=q.get('r')||'';qs.forEach((id,i)=>{st.dir[id]=qd[i]==='n'?'near':'far';st.req[id]=q.get('l')==='any'?false:qr[i]!=='l';});
+    const qpc=/^(lt|ge)(\d{3,6})$/.exec(q.get('pc')||'');if(qpc&&CFG.price)st.pc={on:true,op:qpc[1],v:Math.max(PCMIN,Math.min(PCMAX,+qpc[2]))};if(q.get('ly')==='c'&&CFG.price)$('lyC').checked=true;
+    st.sel=qs.length?qs:['any_locker'];st.mode=st.sel.length>1||q.get('m')==='c'?'combo':'one';document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));$('body').classList.toggle('combo',st.mode==='combo');
+    initMap();buildLUT();
+    const [h,u]=await Promise.all([fetchJson('hist.json').then(tick),fetchBin('unc.bin').then(tick),get('S:l0').then(tick),...st.sel.map(id=>get(`N:${id}/l0`)),poi(st.sel[0]).then(tick)]);
+    if(st.pc.on||$('lyC').checked){await loadPrice().catch(()=>{});if($('lyC').checked){$('pcLeg').hidden=false;pcLegend();}}
+    HIST=h;const un=new Uint32Array(u,0,1)[0];UNC={n:un,pos:new Float32Array(u,4,2*un),lo:new Uint32Array(u,4+8*un,un),hi:new Uint32Array(u,4+12*un,un),act:new Uint8Array(u,4+16*un,un),k:null};
+    const go=()=>{selChanged();const L=$('loader');L.style.opacity=0;setTimeout(()=>L.style.display='none',300);window.__ready=performance.now();};if(map.loaded()||map.isStyleLoaded())go();else map.once('load',go);}
+  catch(e){console.error(e);$('lt').textContent='Nie udało się wczytać danych. Odśwież stronę.';}})();
+</script>
+</body>
+</html>

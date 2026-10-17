@@ -1,0 +1,240 @@
+{
+ "szpital>10000m": {
+  "buildings_act": 3172140,
+  "people": 9873097,
+  "children_0_17": 1959380,
+  "seniors": 2014798,
+  "people_pct": 25.96
+ },
+ "dentysta>5000m": {
+  "buildings_act": 2750768,
+  "people": 8398638,
+  "children_0_17": 1656908,
+  "seniors": 1711314,
+  "people_pct": 22.08
+ },
+ "zlobek>3000m": {
+  "buildings_act": 4164103,
+  "people": 12713195,
+  "children_0_17": 2527610,
+  "seniors": 2565241,
+  "people_pct": 33.43
+ },
+ "straz>5000m": {
+  "buildings_act": 369786,
+  "people": 1215887,
+  "children_0_17": 253149,
+  "seniors": 227912,
+  "people_pct": 3.2
+ },
+ "policja>10000m": {
+  "buildings_act": 805806,
+  "people": 2299208,
+  "children_0_17": 446731,
+  "seniors": 482317,
+  "people_pct": 6.05
+ },
+ "aed>2000m": {
+  "buildings_act": 4141332,
+  "people": 12598677,
+  "children_0_17": 2541645,
+  "seniors": 2491077,
+  "people_pct": 33.12
+ },
+ "basen>15000m": {
+  "buildings_act": 1714226,
+  "people": 5610695,
+  "children_0_17": 1074643,
+  "seniors": 1202466,
+  "people_pct": 14.75
+ },
+ "kino>20000m": {
+  "buildings_act": 1547722,
+  "people": 5295907,
+  "children_0_17": 1004161,
+  "seniors": 1153179,
+  "people_pct": 13.92
+ },
+ "poz>3000m": {
+  "buildings_act": 3252370,
+  "people": 9540655,
+  "children_0_17": 1942071,
+  "seniors": 1864940,
+  "people_pct": 25.08
+ },
+ "any_locker>2000m": {
+  "buildings_act": 2140566,
+  "people": 5956371,
+  "children_0_17": 1185032,
+  "seniors": 1208844,
+  "people_pct": 15.66
+ },
+ "przystanek>1000m": {
+  "buildings_act": 2415396,
+  "people": 7068052,
+  "children_0_17": 1421851,
+  "seniors": 1416305,
+  "people_pct": 18.58
+ },
+ "przystanek_kolejowy>3000m": {
+  "buildings_act": 5132418,
+  "people": 19393524,
+  "children_0_17": 3779314,
+  "seniors": 4049228,
+  "people_pct": 50.99
+ },
+ "metro>2000m": {
+  "buildings_act": 7786921,
+  "people": 36834328,
+  "children_0_17": 6808088,
+  "seniors": 8189080,
+  "people_pct": 96.85
+ },
+ "rower>1000m": {
+  "buildings_act": 7052633,
+  "people": 28389175,
+  "children_0_17": 5412813,
+  "seniors": 6106931,
+  "people_pct": 74.64
+ },
+ "rossmann>5000m": {
+  "buildings_act": 4276544,
+  "people": 13030777,
+  "children_0_17": 2602798,
+  "seniors": 2618396,
+  "people_pct": 34.26
+ },
+ "pepco>5000m": {
+  "buildings_act": 4614508,
+  "people": 14546064,
+  "children_0_17": 2894367,
+  "seniors": 2939620,
+  "people_pct": 38.24
+ },
+ "ksiegarnia>5000m": {
+  "buildings_act": 5258611,
+  "people": 17428893,
+  "children_0_17": 3453776,
+  "seniors": 3559718,
+  "people_pct": 45.82
+ },
+ "silownia>3000m": {
+  "buildings_act": 5827859,
+  "people": 19626900,
+  "children_0_17": 3876075,
+  "seniors": 4020420,
+  "people_pct": 51.6
+ },
+ "targowisko>5000m": {
+  "buildings_act": 4667700,
+  "people": 15348141,
+  "children_0_17": 3071806,
+  "seniors": 3091185,
+  "people_pct": 40.35
+ },
+ "zara>20000m": {
+  "buildings_act": 6065924,
+  "people": 24777512,
+  "children_0_17": 4648822,
+  "seniors": 5466798,
+  "people_pct": 65.15
+ },
+ "empik>10000m": {
+  "buildings_act": 4902226,
+  "people": 17105606,
+  "children_0_17": 3309246,
+  "seniors": 3619151,
+  "people_pct": 44.97
+ },
+ "hm>20000m": {
+  "buildings_act": 4259090,
+  "people": 16030676,
+  "children_0_17": 3021086,
+  "seniors": 3512894,
+  "people_pct": 42.15
+ },
+ "reserved>20000m": {
+  "buildings_act": 4023220,
+  "people": 14895860,
+  "children_0_17": 2848113,
+  "seniors": 3219343,
+  "people_pct": 39.16
+ },
+ "hebe>10000m": {
+  "buildings_act": 5147447,
+  "people": 18312233,
+  "children_0_17": 3527037,
+  "seniors": 3897008,
+  "people_pct": 48.15
+ },
+ "wykluczenie_all3": {
+  "people": 1515300,
+  "people_pct": 3.98,
+  "buildings_act": 588730
+ },
+ "median_weighted_by_people_m": {
+  "inpost": 510.0,
+  "dpd": 524.0,
+  "dhl": 571.0,
+  "orlen": 715.0,
+  "allegro": 5617.0,
+  "poczta": 617.0,
+  "gls": 562.0,
+  "any_locker": 396.0,
+  "any_pickup": 342.0,
+  "szkola": 981.0,
+  "przedszkole": 1175.0,
+  "poz": 1071.0,
+  "apteka": 911.0,
+  "urzad": 3159.0,
+  "biblioteka": 3176.0,
+  "zabka": 782.0,
+  "biedronka": 1416.0,
+  "lidl": 2889.0,
+  "dino": 4234.0,
+  "netto": 5985.0,
+  "kaufland": 8170.0,
+  "stokrotka": 6313.0,
+  "rossmann": 2040.0,
+  "hebe": 9263.0,
+  "pepco": 2845.0,
+  "reserved": 13383.0,
+  "hm": 14580.0,
+  "zara": 39381.0,
+  "empik": 7896.0,
+  "ksiegarnia": 4064.0,
+  "targowisko": 3326.0,
+  "bankomat": 1263.0,
+  "przystanek": 370.0,
+  "przystanek_kolejowy": 3112.0,
+  "metro": 264866.0,
+  "rower": 10375.0,
+  "paliwa": 1347.0,
+  "ev": 1803.0,
+  "plac_zabaw": 586.0,
+  "park": 1812.0,
+  "silownia": 3396.0,
+  "szpital": 3734.0,
+  "dentysta": 1093.0,
+  "weterynarz": 1571.0,
+  "zlobek": 1365.0,
+  "szkola_srednia": 1621.0,
+  "uczelnia": 7364.0,
+  "policja": 2382.0,
+  "straz": 1702.0,
+  "aed": 1079.0,
+  "dom_kultury": 1184.0,
+  "kino": 5894.0,
+  "teatr": 14897.0,
+  "muzeum": 4149.0,
+  "kosciol": 974.0,
+  "sport": 1184.0,
+  "basen": 3541.0,
+  "cmentarz": 1561.0,
+  "bank": 1653.0,
+  "gastronomia": 746.0,
+  "galeria": 2750.0,
+  "budowlany": 2697.0,
+  "piekarnia": 1307.0
+ }
+}
