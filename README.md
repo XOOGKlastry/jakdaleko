@@ -6,6 +6,20 @@ Statyczna mapa pokazuje **pieszą odległość po drogach** od każdego budynku 
 
 <img src="docs/desktop_v4.png" width="640" alt="Jak daleko? – widok komputerowy"> <img src="docs/mobile_v4.png" width="220" alt="Jak daleko? na telefonie">
 
+## Interfejs — aktualizacja UX
+
+- Nowa, spójna oprawa jasna i ciemna, responsywny panel, widoczne stany fokusu i obsługa klawiatury.
+- Scenariusze „Szukam blisko” i „Szukam braków” z widocznymi progami; poprawione nazwy scenariuszy identyfikujących braki.
+- Wybór usług w wyszukiwanym katalogu, zwijane opcje zaawansowane, podsumowanie warunków i oznaczenie krajowego zakresu statystyk.
+- Kierunek blisko/daleko także dla jednej usługi; próg można wpisać w metrach lub wybrać skrótem. Parametry są zachowane w udostępnianym linku.
+- Karta „Życie pod tym adresem”: najbliższy uwzględniony sklep spożywczy, apteka, przystanek, szkoła publiczna i park; pozostałe usługi w rozwijanej sekcji.
+- Kliknięcie miejsca pokazuje poglądową linię i link do zewnętrznej nawigacji pieszej. Dane projektu nie zawierają geometrii tras; nawigacja wyznacza własną trasę.
+- Wyraźne rozróżnienie szacunków, braku wyznaczonego dojścia i błędu pobierania. Przy braku WebGL działa tryb bez mapy z wyszukiwaniem adresów, raportem i statystykami.
+
+Warstwa prezentacji: `ui.css` i `ui.js`; obliczenia i obsługa danych: `index.html`. Nie zmieniono plików danych przestrzennych ani algorytmu odległości.
+
+Testy: `npm ci && npm test`. Test integracyjny na pełnym repozytorium (wymaga katalogów z danymi): `npm run test:integration`. Sprawdza start aplikacji, tryb bez WebGL i raport rzeczywistego budynku. Testy DOM nie zastępują weryfikacji renderowania WebGL.
+
 ## Co można zrobić
 - **Jedna sieć albo dowolne łączenie sieci:**
   - wybierasz dowolne sieci, maksymalnie 12 naraz (przy próbie dodania kolejnej pojawia się komunikat);
