@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light dark">
 <title>Jak daleko? · piesza odległość do usług, sklepów i transportu</title>
-<meta name="description" content="Mapa wszystkich budynków mieszkalnych w Polsce z pieszą odległością po drogach do najbliższego paczkomatu, przychodni, szkoły, przystanku, sklepu i innych – z dowolnym łączeniem sieci, wyszukiwarką adresów i raportem dla budynku.">
+<meta name="description" content="Mapa wszystkich budynków mieszkalnych w Polsce z pieszą odległością po drogach do najbliższego paczkomatu, przychodni, szkoły, przystanku, sklepu i innych – z dowolnym łączeniem usług, wyszukiwarką adresów i raportem dla budynku.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%23a50f7e'/><circle cx='16' cy='16' r='5' fill='white'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -181,61 +181,63 @@ details summary{cursor:pointer;color:var(--acc);font-weight:600;margin-top:6px}
   .rb{overflow:visible}.rr{break-inside:avoid}.rr.on{background:#f3f4f6}
 }
 </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="bar"></div>
-<div id="map"></div>
-<button class="sbtn" id="msearch" aria-label="Szukaj"><span>⌕</span><span>Szukaj adresu, miejscowości, TERYT…</span></button>
+<div id="map" role="region" aria-label="Mapa dostępności usług"></div>
+<div id="mapIntro"><span class="eyebrow">ODKRYWAJ OKOLICĘ</span><strong>Codzienne miejsca. Bliżej Ciebie.</strong><span>Kliknij budynek, aby sprawdzić jego otoczenie.</span></div>
+<button id="shareView" class="map-action" aria-label="Kopiuj link do tego widoku">Udostępnij widok ↗</button>
+<div id="mapKey" aria-label="Legenda mapy"></div>
+<button class="sbtn" id="msearch" aria-label="Szukaj"><span>⌕</span><span>Wpisz adres lub miejscowość…</span></button>
 <button class="iconbtn" id="mtheme" title="Motyw jasny / ciemny" aria-label="Motyw jasny / ciemny">◐</button>
-<aside id="panel">
+<aside id="panel" aria-label="Wyszukiwanie i filtry">
   <button class="grab" id="grab" aria-label="Rozwiń panel"><i></i></button>
-  <div class="hd"><div><h1>Jak daleko?</h1><p>Piesza odległość po drogach od każdego budynku mieszkalnego w Polsce do najbliższego punktu – łącz sieci dowolnie.</p></div><button class="iconbtn" id="theme" title="Motyw jasny / ciemny" aria-label="Motyw">◐</button></div>
-  <button class="sbtn desk" id="dsearch"><span>⌕</span><span>Szukaj adresu, miejscowości, TERYT…</span><kbd>/</kbd></button>
+  <div class="hd"><div><span class="eyebrow">TWOJA OKOLICA W ZASIĘGU</span><h1>Jak daleko?</h1><p>Sprawdź, co masz blisko. Odkryj dostęp do codziennych usług w całej Polsce.</p></div><button class="iconbtn" id="theme" title="Motyw jasny / ciemny" aria-label="Motyw">◐</button></div>
+  <button class="sbtn desk" id="dsearch"><span>⌕</span><span>Wpisz adres lub miejscowość…</span><kbd>/</kbd></button>
   <div class="body" id="body">
-    <div class="stick"><div class="seg" id="mode"><button data-m="one">Jedna sieć</button><button data-m="combo">Łącz sieci</button></div>
+    <div class="stick"><div class="seg" id="mode"><button data-m="one">Jedna usługa</button><button data-m="combo">Połącz warunki</button></div>
       <button class="pickbtn" id="pickBtn" aria-haspopup="dialog"></button></div>
     <div class="sec">
-      <div id="sel" style="margin-top:10px"></div>
-      <div class="seg sm logic" id="logic" hidden><button data-l="all">Wszystkie warunki</button><button data-l="any">Którykolwiek</button></div>
+      <div class="section-heading"><span>Twoje warunki</span><span class="badge">PIESZO</span></div><div id="sel" style="margin-top:10px"></div>
+      <div class="seg sm logic" id="logic" hidden><button data-l="all">Wszystkie warunki</button><button data-l="any">Co najmniej jeden</button></div>
       <div class="hint" id="logicH" hidden></div>
-      <div class="stats">
+      <div id="filterSummary" class="filter-summary" aria-live="polite"></div><div class="scope-note">Wyniki dla całej Polski <span>•</span> według Twoich warunków</div><div class="stats">
         <div class="card"><div class="n sk" id="cntB">–</div><div class="t sk" id="pctB">budynków</div></div>
         <div class="card"><div class="n sk" id="cntP">–</div><div class="t sk" id="pctP">mieszkańców</div></div>
       </div>
       <div id="scan" hidden><div class="prog"><i id="scanP"></i></div><div class="hint" id="scanT">Liczenie dla całej Polski…</div></div>
     </div>
     <div class="sec">
-      <div class="lab">Gotowe zestawy</div>
-      <div class="grid" id="presets"></div>
+      <div class="section-heading"><span>Od czego zacząć?</span></div><p class="section-desc">Wybierz scenariusz i dostosuj odległości.</p><div class="seg sm" id="presetIntent"><button data-intent="near" class="on">Szukam blisko</button><button data-intent="far">Szukam braków</button></div>
+      <div class="grid" id="presets"></div><button class="text-button" id="morePresets" aria-expanded="false">Pokaż więcej scenariuszy ↓</button>
     </div>
-    <div class="sec more" id="netsec">
-      <div class="lab"><span id="netT">Wybierz sieć</span><a class="lnk" id="clear" hidden>wyczyść</a></div>
+    <details class="sec more" id="netsec"><summary>Katalog usług <span>Przeglądaj wszystkie</span></summary>
+      <div class="lab"><span id="netT">Wybierz usługę</span><a class="lnk" id="clear" hidden>wyczyść</a></div>
       <div id="nets"></div>
-    </div>
-    <div class="sec more">
-      <div class="lab">Licz</div>
+    </details>
+    <details class="sec more"><summary>Rozkład odległości <span>Statystyki</span></summary>
+      <div class="lab">Pokaż dane dla</div>
       <div class="seg sm" id="unit"><button data-u="b">Budynki</button><button data-u="pop">Mieszkańcy</button><button data-u="pre">Dzieci 0–17</button><button data-u="post">Seniorzy</button></div>
       <div id="histW"><div class="hist" id="hist"></div><div class="hl" id="histL"></div></div>
-    </div>
+    </details>
     <div class="sec legend more">
       <div class="lab"><span id="legT"></span></div>
       <div class="bar" id="legBar"></div><div class="lt" id="legTicks"></div>
     </div>
-    <div class="sec more">
-      <div class="lab">Warstwy</div>
+    <details class="sec more"><summary>Wygląd mapy <span>Warstwy</span></summary>
       <label class="tg"><span class="sym"><span class="dot" style="background:linear-gradient(90deg,#f99ab6,#6a0177)"></span></span>Budynki mieszkalne<span class="c"></span><span class="sw"><input type="checkbox" id="lyB" checked><i></i></span></label>
-      <label class="tg"><span class="sym"><span class="dot" id="poiDot"></span></span><span>Punkty wybranych sieci</span><span class="c" id="poiCnt"></span><span class="sw"><input type="checkbox" id="lyP" checked><i></i></span></label>
-      <label class="tg"><span class="sym"><span class="dot" style="background:#9ca3af"></span></span>Bez połączenia z siecią dróg<span class="c" id="cU"></span><span class="sw"><input type="checkbox" id="lyU"><i></i></span></label>
+      <label class="tg"><span class="sym"><span class="dot" id="poiDot"></span></span><span>Wybrane miejsca</span><span class="c" id="poiCnt"></span><span class="sw"><input type="checkbox" id="lyP" checked><i></i></span></label>
+      <label class="tg"><span class="sym"><span class="dot" style="background:#9ca3af"></span></span>Brak wyznaczonego dojścia<span class="c" id="cU"></span><span class="sw"><input type="checkbox" id="lyU"><i></i></span></label>
       <label class="tg" id="lyCw"><span class="sym"><span class="dot" style="background:linear-gradient(90deg,#c7e9b4,#1d91c0,#0c2c84)"></span></span>Ceny mieszkań zł/m² (RCN)<span class="c"></span><span class="sw"><input type="checkbox" id="lyC"><i></i></span></label>
       <div id="pcLeg" hidden style="margin:-2px 0 6px 28px"></div>
-      <label class="tg"><span class="sym" style="color:var(--mut)">⌂</span>Tylko budynki użytkowane<span class="c"></span><span class="sw"><input type="checkbox" id="act" checked><i></i></span></label>
-    </div>
-    <div class="sec more">
+      <label class="tg"><span class="sym" style="color:var(--mut)">⌂</span>Tylko budynki użytkowane<span class="c"></span><span class="sw"><input type="checkbox" id="act" checked><i></i></span></label><p class="hint">Szare punkty oznaczają brak wyznaczonego dojścia — ich odległość jest nieznana.</p>
+    </details>
+    <details class="sec more"><summary>Ranking miejsc <span>Cała Polska</span></summary>
       <div class="lab"><span id="topT">Najdalej położone</span> <a class="lnk" id="csv">CSV ↓</a></div>
       <table><thead><tr><th>#</th><th id="thD">Odległość</th><th>Mieszk.</th><th class="k" id="thK">TERYT · rodzaj</th></tr></thead><tbody id="top"></tbody></table>
-    </div>
-    <div class="sec note more" id="srcBox"></div>
-    <div class="sec note more" id="about"></div>
+    </details>
+    <details class="sec note more" id="methodDetails"><summary>O danych i metodzie <span>Źródła</span></summary><div id="srcBox"></div><div id="about"></div></details><div class="panel-footer">Odległości po drogach · Ludność szacunkowa<br><span id="dataDate"></span></div>
   </div>
 </aside>
 <div id="search" role="dialog" aria-label="Wyszukiwarka"><div class="sbox">
@@ -243,18 +245,19 @@ details summary{cursor:pointer;color:var(--acc);font-weight:600;margin-top:6px}
   <div id="sres"></div>
   <div class="sfoot">Miejscowości: PRNG, ulice: PRG (GUGiK), gminy: PRG. Adresy z numerem domu: <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Wybranie wyniku przybliża mapę i otwiera raport dla najbliższego budynku.</div>
 </div></div>
-<div id="picker" role="dialog" aria-label="Wybór sieci"><div class="pbox">
+<div id="picker" role="dialog" aria-label="Wybór usług"><div class="pbox">
   <div class="ph"><input id="pq" type="search" placeholder="Szukaj: apteka, Żabka, metro…" autocomplete="off" enterkeyhint="search"><button id="pDone">Gotowe</button></div>
   <div class="pinfo" id="pinfo"></div><div class="ptabs" id="ptabs"></div>
   <div id="plist"></div>
 </div></div>
 <aside id="report" aria-label="Raport o budynku">
-  <div class="rh"><h2 id="rT">Budynek</h2><div class="s" id="rS"></div>
+  <div class="rh"><span class="eyebrow">ŻYCIE POD TYM ADRESEM</span><h2 id="rT">Budynek</h2><div class="s" id="rS"></div>
     <div class="acts"><button class="iconbtn" id="rPrint" title="Drukuj raport" aria-label="Drukuj">⎙</button><button class="iconbtn" id="rX" title="Zamknij" aria-label="Zamknij">×</button></div></div>
   <div class="rb" id="rB"></div>
 </aside>
-<div id="toast"></div>
-<div id="loader"><div class="box"><b>Jak daleko?</b><div class="note" style="margin-top:4px" id="lt">Wczytywanie mapy i danych…</div><div class="pb"><i id="lp"></i></div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="loader" role="status"><div class="box"><span class="eyebrow">JAK DALEKO?</span><b id="loadTitle">Przygotowujemy Twoją mapę</b><div class="note" style="margin-top:4px" id="lt">Wczytywanie mapy i danych…</div><div class="pb"><i id="lp"></i></div><div id="loadActions" hidden><button id="retryLoad" class="primary-button">Spróbuj ponownie</button><button id="dismissLoad" class="text-button">Przeglądaj opis i źródła</button></div></div></div>
+<script src="ui.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -325,7 +328,7 @@ function wanted(){const z=map.getZoom(),S=st.sel;if(!S.length)return [];
   return visTiles(.1).filter(k=>CFG.tiles[k]).map(k=>({id:k,pos:'P:'+k,codes:S.map(id=>`D:${id}/${k}`)}));}
 const ready=g=>has(g.pos)&&g.codes.every(has);
 // kolor: zawsze odległość do pierwszej sieci na liście (można zmienić stukając nazwę); filtr: warunki „daleko ≥” / „blisko <”, każdy „musi” albo „lub”
-const isNear=id=>st.mode==='combo'&&st.dir[id]==='near';
+const isNear=id=>st.dir[id]==='near';
 const isReq=id=>st.mode!=='combo'||st.sel.length<2||st.req[id]!==false;
 function logicState(){const r=st.sel.map(isReq);return r.every(Boolean)?'all':r.every(x=>!x)?'any':'mix';}
 function colKey(){return st.sel[0]+'|'+st.theme;}
@@ -470,7 +473,7 @@ const ATTR=new Map();
 function attrTile(key){if(ATTR.has(key))return ATTR.get(key);const p=fetchBin('a/'+key+'.bin').then(b=>{const n=CFG.tiles[key];return {fid:new Int32Array(b,0,n),teryt:new Uint16Array(b,4*n,n),pop:new Uint16Array(b,6*n,n),snap:new Uint8Array(b,8*n,n),kind:new Uint8Array(b,9*n,n),status:new Uint8Array(b,10*n,n)};});
   ATTR.set(key,p);if(ATTR.size>30)ATTR.delete(ATTR.keys().next().value);return p;}
 function nearestIn(pos,n,lon,lat,maxDeg,ok){const c=Math.cos(lat*Math.PI/180);let best=-1,bd=maxDeg*maxDeg;for(let i=0;i<n;i++){const dx=(pos[2*i]-lon)*c,dy=pos[2*i+1]-lat,q=dx*dx+dy*dy;if(q<bd&&(!ok||ok(i))){bd=q;best=i;}}return [best,bd];}
-async function building(lon,lat,maxDeg,filter,direct){const z=map.getZoom();let tlon=lon,tlat=lat;const pass=passFn(),okf=(C,A)=>{const pr=pcOn()?priceArr(A):null;return i=>(!st.act||A.act[i])&&pass(C,i,pr);};
+async function building(lon,lat,maxDeg,filter,direct){const z=map?map.getZoom():16;let tlon=lon,tlat=lat;const pass=passFn(),okf=(C,A)=>{const pr=pcOn()?priceArr(A):null;return i=>(!st.act||A.act[i])&&pass(C,i,pr);};
   if(z<BZ&&!direct){let best=null;for(const g of lastShown){if(!ready(g))continue;const A=peek(g.pos),C=g.codes.map(k=>peek(k).code);const [i,q]=nearestIn(A.pos,A.n,lon,lat,maxDeg,filter&&K()?okf(C,A):null);if(i>=0&&(!best||q<best.q))best={q,lon:A.pos[2*i],lat:A.pos[2*i+1]};}
     if(!best)return null;tlon=best.lon;tlat=best.lat;maxDeg=0.0005;filter=false;}
   const tx=Math.floor((tlon-CFG.origin[0])/T()),ty=Math.floor((tlat-CFG.origin[1])/T()),cands=[];
@@ -482,42 +485,42 @@ async function building(lon,lat,maxDeg,filter,direct){const z=map.getZoom();let 
 // ---------- raport o obiekcie ----------
 let GMINY=null,GMAP=null;function gminy(){if(!GMINY)GMINY=fetchJson('q/gminy.json').then(a=>{GMAP=new Map(a.map(g=>[String(g[0]),g]));return a;});return GMINY;}
 let REP=0;
-async function report(b){const run=++REP;st.pick={lon:b.lon,lat:b.lat};st.lines=[];st.rep={b,rows:{}};redraw();$('report').classList.add('on');if(MOBILE)$('panel').classList.remove('open');if(popup)popup.remove();
-  $('rT').textContent='Budynek mieszkalny';$('rS').innerHTML='<span class="sk" style="display:inline-block;width:220px;height:12px">&nbsp;</span>';
+async function report(b){const run=++REP;st.pick={lon:b.lon,lat:b.lat};st.lines=[];st.rep={b,rows:{},focus:null};document.body.classList.add('report-open');redraw();$('report').classList.add('on');if(MOBILE)$('panel').classList.remove('open');if(popup)popup.remove();
+  $('rT').textContent='Wybrany budynek';$('rS').innerHTML='<span class="sk" style="display:inline-block;width:220px;height:12px">&nbsp;</span>';
   const ids=[...st.sel,...CFG.categories.flatMap(c=>CFG.networks.filter(n=>n.cat===c.id&&!st.sel.includes(n.id)).map(n=>n.id))];
-  const row=id=>`<div class="rr${st.sel.includes(id)?' on':''}" id="rr_${id}"><span class="dot" style="background:${NETS[id].fill};box-shadow:0 0 0 1.5px ${NETS[id].line} inset"></span><span class="nm">${esc(NETS[id].short)}<small><span class="sk skl" style="display:inline-block">&nbsp;</span></small></span><b class="sk" style="width:54px">&nbsp;</b></div>`;
-  let html=`<div class="kp"><div class="card"><div class="n sk" id="rPop">&nbsp;</div><div class="t">mieszkańców (szac.)</div></div><div class="card"><div class="n sk" id="rNear">&nbsp;</div><div class="t">sieci do 1 km</div></div><div class="card"><div class="n sk" id="rFar">&nbsp;</div><div class="t">sieci dalej niż 5 km</div></div></div>`;
+  const row=id=>`<div class="rr${st.sel.includes(id)?' on':''}" id="rr_${id}" tabindex="0" role="button" aria-label="Pokaż miejsce: ${esc(NETS[id].short)}"><span class="dot" style="background:${NETS[id].fill};box-shadow:0 0 0 1.5px ${NETS[id].line} inset"></span><span class="nm">${esc(NETS[id].short)}<small><span class="sk skl" style="display:inline-block">&nbsp;</span></small></span><b class="sk" style="width:54px">&nbsp;</b></div>`;
+  let html=`<div class="trust-note">Szacowane odległości piesze po drogach. Model nie uwzględnia wejść, bram ani ogrodzeń.</div><div id="dailyPlaces" class="daily-places"><div class="rsec">Na co dzień</div><p class="hint">Sprawdzamy sklep, aptekę, przystanek, szkołę i park…</p></div><div class="kp"><div class="card"><div class="n sk" id="rPop">&nbsp;</div><div class="t">mieszkańców (szac.)</div></div><div class="card"><div class="n sk" id="rNear">&nbsp;</div><div class="t">usług do 1 km</div></div><div class="card"><div class="n sk" id="rFar">&nbsp;</div><div class="t">usług od 5 km</div></div></div>`;
   if(CFG.price)html+=`<div class="rprice" id="rPrice"><span class="sk" style="display:inline-block;width:200px">&nbsp;</span></div>`;
-  if(K())html+=`<div class="rsec">Wybrane sieci · linie na mapie</div>`+st.sel.map(row).join('');
-  for(const c of CFG.categories){const cs=CFG.networks.filter(n=>n.cat===c.id&&!st.sel.includes(n.id)).map(n=>n.id);if(cs.length)html+=`<div class="rsec">${esc(c.label)}</div>`+cs.map(row).join('');}
-  html+=`<div class="rnote">Odległość piesza po sieci dróg BDOT10k od punktu wewnątrz budynku do najbliższego punktu sieci – ta sama wartość co na mapie (zapis z dokładnością 20 m do 2 km, 100 m do 10 km, 500 m dalej). Linie na mapie pokazują kierunek w linii prostej, nie trasę.</div><div class="rnote" id="rMeta"></div>`;
+  if(K())html+=`<div class="rsec">Wybrane usługi</div>`+st.sel.map(row).join('');
+  html+='<details class="report-more"><summary>Wszystkie usługi w okolicy</summary>';for(const c of CFG.categories){const cs=CFG.networks.filter(n=>n.cat===c.id&&!st.sel.includes(n.id)).map(n=>n.id);if(cs.length)html+=`<div class="rsec">${esc(c.label)}</div>`+cs.map(row).join('');}html+='</details>';
+  html+=`<div class="rnote">Odległość piesza po drogach BDOT10k od punktu wewnątrz budynku do najbliższego miejsca – ta sama wartość co na mapie (zapis z dokładnością 20 m do 2 km, 100 m do 10 km, 500 m dalej). Linie na mapie pokazują kierunek w linii prostej, nie trasę.</div><div class="rnote" id="rMeta"></div>`;
   $('rB').innerHTML=html;$('rB').scrollTop=0;
   if(CFG.price)loadPrice().then(()=>{if(run!==REP)return;const q=priceAt(b.lon,b.lat),e=$('rPrice');if(!e)return;const P=CFG.price,per=`${pmon(P.period[0])} – ${pmon(P.period[1])}`;
     e.innerHTML=q?`<div class="pv"><span class="sw" style="background:${PC_COL[st.theme][pcIdx(q.v)]}"></span><b>${fmt(q.v)} zł/m²</b><span>mediana cen mieszkań ${q.lvl===1?'w okolicy (~1 km)':'w szerszej okolicy (~5 km)'}</span></div><small>${fmt(q.n)} transakcji (rynek wolny, pojedyncze lokale), ${per} · Rejestr Cen Nieruchomości (GUGiK)${pcOn()?` · warunek: ${st.pc.op==='lt'?'taniej niż':'drożej niż'} ${fmt(st.pc.v)} zł/m² – ${(st.pc.op==='lt'?q.v<st.pc.v:q.v>=st.pc.v)?'spełniony':'niespełniony'}`:''}</small>`
       :`<div class="pv"><b>Ceny mieszkań: brak danych</b></div><small>Mniej niż ${P.min_n} transakcji w promieniu ~5 km w okresie ${per} (RCN, GUGiK).</small>`;}).catch(()=>{const e=$('rPrice');if(e)e.textContent='';});
   attrTile(b.key).then(async a=>{if(run!==REP)return;const i=b.i,pop=a.pop[i]/10,kind=CFG.kinds[a.kind[i]],status=CFG.statuses[a.status[i]],ter=CFG.teryt[a.teryt[i]],snap=a.snap[i];
     $('rT').textContent=cap(kind)||'Budynek mieszkalny';$('rPop').classList.remove('sk');$('rPop').textContent=pop>=1?fmt(pop):pop>0?'< 1':'0';
-    $('rS').innerHTML=`${esc(status||'')}${b.act?'':' · nieużytkowany'} · TERYT powiatu ${esc(ter||'–')}<br>${b.lat.toFixed(5)}, ${b.lon.toFixed(5)} · BUBD fid ${a.fid[i]}`;
-    $('rMeta').textContent=`Dojście budynek–droga: ${snap===255?'–':snap+' m'}. Mieszkańcy: szacunek z obwodów spisowych NSP 2021 rozdzielonych na budynki. Stan danych ${CFG.date}.`;}).catch(()=>{});
+    $('rS').innerHTML=`${esc(status||'')}${b.act?'':' · nieużytkowany'} · TERYT powiatu ${esc(ter||'–')}<br>${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}`;
+    $('rMeta').textContent=`Dojście budynek–droga: ${snap===255?'–':snap+' m'}. Mieszkańcy: szacunek z obwodów spisowych NSP 2021 rozdzielonych na budynki. Stan danych ${CFG.date}.`;}).catch(()=>{if(run!==REP)return;$('rS').textContent='Nie udało się pobrać szczegółów budynku.';$('rPop').classList.remove('sk');$('rPop').textContent='–';});
   let done=0,near=0,far=0;window.__rt0=performance.now();
   const one=async id=>{const n=NETS[id];try{const [D,r]=await Promise.all([get(`D:${id}/${b.key}`),rankAt(id,b.key,b.i)]);const code=D.code[b.i];let p=null,name='';
       if(code!==255){const U=code>=254?60000:dec(code+1);p=nearestByRank(await poiAround(id,b.qlon,b.qlat,(U*1.1+150)/111320),b.qlon,b.qlat,code,r);if(p)name=await poiName(id,p[3]);}
       if(run!==REP)return;const res={id,code,p,name,type:p?n.types[p[2]]:''};st.rep.rows[id]=res;if(code!==255&&dec(code+1)<=1000)near++;if(code!==255&&dec(code)>=5000)far++;
       const el=$('rr_'+id);if(el){const sel=st.sel.includes(id);const meet=sel&&code!==255&&(isNear(id)?dec(code)<st.th[id]:dec(code)>=st.th[id]);el.classList.toggle('far',meet&&!isNear(id));el.classList.toggle('ok',meet&&isNear(id));
-        el.innerHTML=`${sel?`<span class="lk" style="background:${n.fill}"></span>`:`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>`}<span class="nm">${esc(n.short)}<small>${p?esc(name||n.short)+(res.type&&res.type!==name&&!n.combined?' · '+esc(res.type):''):code===255?'brak połączenia z siecią dróg':'punkt nieustalony'}</small></span><b>${fcode(code)}</b>`;}
-      if(st.sel.includes(id))spider();}catch(e){if(run!==REP)return;const el=$('rr_'+id);if(el){const x=el.querySelector('b');x.classList.remove('sk');x.textContent='–';}}
+        el.innerHTML=`${sel?`<span class="lk" style="background:${n.fill}"></span>`:`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>`}<span class="nm">${esc(n.short)}<small>${p?esc(name||n.short)+(res.type&&res.type!==name&&!n.combined?' · '+esc(res.type):''):code===255?'brak wyznaczonego dojścia':'punkt nieustalony'}</small></span><b>${fcode(code)}</b>`;}
+      renderDailyPlaces();if(st.sel.includes(id))spider();}catch(e){if(run!==REP)return;const el=$('rr_'+id);if(el){const x=el.querySelector('b');x.classList.remove('sk');x.textContent='–';const label=el.querySelector('small');if(label)label.textContent='Nie udało się pobrać danych';}st.rep.rows[id]={id,error:true};renderDailyPlaces();}
     if(run!==REP)return;if(++done===ids.length){for(const [k,v] of [['rNear',near],['rFar',far]]){$(k).classList.remove('sk');$(k).textContent=`${v} z ${ids.length}`;}window.__report_ms=performance.now()-window.__rt0;}};
   let qi=0;const W=async()=>{while(qi<ids.length)await one(ids[qi++]);};
-  await Promise.all(Array.from({length:8},W));if(run===REP)fitReport();}
-function spider(){const R=st.rep;if(!R)return;const b=R.b;st.lines=st.sel.map(id=>R.rows[id]).filter(r=>r&&r.p).map(r=>{const c=hex(NETS[r.id].fill),e=[r.p[0],r.p[1]];
+  await Promise.all(Array.from({length:8},W));if(run===REP){renderDailyPlaces();fitReport();}}
+function spider(){const R=st.rep;if(!R)return;const b=R.b;st.lines=(R.focus?[R.focus]:st.sel).map(id=>R.rows[id]).filter(r=>r&&r.p).map(r=>{const c=hex(NETS[r.id].fill),e=[r.p[0],r.p[1]];
     return {path:[[b.lon,b.lat],e],lab:[(b.lon+e[0])/2,(b.lat+e[1])/2],color:c.concat(255),text:`${NETS[r.id].short} ${fcode(r.code)}`};});redraw();}
-function fitReport(){const R=st.rep;if(!R)return;const pts=[[R.b.lon,R.b.lat],...st.lines.map(l=>l.path[1])];
+function fitReport(){const R=st.rep;if(!R||!map)return;const pts=[[R.b.lon,R.b.lat],...st.lines.map(l=>l.path[1])];
   const bb=pts.reduce((b,p)=>[Math.min(b[0],p[0]),Math.min(b[1],p[1]),Math.max(b[2],p[0]),Math.max(b[3],p[1])],[180,90,-180,-90]);
   map.setPadding({top:0,right:0,bottom:0,left:0});const H_=map.getContainer().clientHeight,W_=map.getContainer().clientWidth;let pad=MOBILE?{top:70,bottom:Math.round(H_*0.62)+16,left:30,right:30}:{top:60,bottom:60,left:440,right:480};
   if(MOBILE&&H_-pad.bottom-pad.top<110)pad.bottom=Math.max(20,H_-pad.top-110);if(!MOBILE&&W_-pad.left-pad.right<200){pad.left=40;pad.right=40;}
   if(pts.length<2){map.easeTo({center:pts[0],zoom:Math.max(map.getZoom(),15),duration:600});return;}
   map.fitBounds([[bb[0]-.0008,bb[1]-.0008],[bb[2]+.0008,bb[3]+.0008]],{padding:pad,maxZoom:16.5,duration:700});}
-function closeReport(){$('report').classList.remove('on');st.rep=null;st.lines=[];st.pick=null;REP++;redraw();}
+function closeReport(){document.body.classList.remove('report-open');$('report').classList.remove('on');st.rep=null;st.lines=[];st.pick=null;REP++;redraw();}
 async function openAt(lon,lat,maxDeg,filter,direct){try{const b=await building(lon,lat,maxDeg,filter,direct);if(!b){toast('Brak budynku mieszkalnego w pobliżu');return false;}await report(b);return true;}catch(e){console.warn(e);return false;}}
 async function fly(r){await openAt(r[0],r[1],0.0003,false,true);}
 async function flyCombo(r){const A=await get('P:'+r[1]),i=r[2];await openAt(A.pos[2*i],A.pos[2*i+1],0.00002,false,true);}
@@ -527,7 +530,7 @@ const SH=new Map();function shard(p){if(!SH.has(p))SH.set(p,tracked(fetch(`q/${p
 const ICON={m0:'🏙',m1:'🏡',m2:'🏘',m3:'📍',u:'🛣',g:'🗺',a:'🏠',p:'•'};
 let SQ=0,SRES=[],SON=0;
 function openSearch(){$('search').classList.add('on');const q=$('sq');q.value='';setTimeout(()=>q.focus(),0);SRES=[];
-  $('sres').innerHTML=`<div class="sempty">Wpisz np. <b>Floriańska 3 Kraków</b>, <b>Zakopane</b>, <b>gmina Wąchock</b>, kod TERYT gminy <b>1465011</b> albo nazwę punktu wybranej sieci (np. kod paczkomatu).</div>`;}
+  $('sres').innerHTML=`<div class="sempty">Wpisz np. <b>Floriańska 3 Kraków</b>, <b>Zakopane</b>, <b>gmina Wąchock</b>, kod TERYT gminy <b>1465011</b> albo nazwę punktu wybranej usługi (np. kod paczkomatu).</div>`;}
 function closeSearch(){$('search').classList.remove('on');}
 async function doSearch(q){const run=++SQ,toks=norm(q).split(' ').filter(Boolean),words=toks.filter(t=>!/^\d/.test(t)&&t.length>=2),nums=toks.filter(t=>/^\d/.test(t));
   if(!toks.length){openSearch();$('sq').value=q;return;}const res=[],qt=q.trim();
@@ -541,13 +544,13 @@ async function doSearch(q){const run=++SQ,toks=norm(q).split(' ').filter(Boolean
   if(run!==SQ)return;
   const rk=r=>(r.ex?0:20)+({m0:0,g:1,m1:2,u:3,m2:4,p:5,m3:6,a:7}[r.t]??8);res.sort((a,b)=>rk(a)-rk(b)||a.tt.length-b.tt.length);
   let out=res.slice(0,12);const wantPh=words.length&&(nums.length||!res.length);if(wantPh)out=[{t:'a',tt:'Szukam adresu…',st:'Photon · OpenStreetMap',wait:true},...out];renderRes(out,q);
-  if(wantPh){try{const c=map.getCenter(),u=`https://photon.komoot.io/api/?q=${encodeURIComponent(qt)}&limit=6&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}&bbox=14.0,49.0,24.2,54.9`;
+  if(wantPh){try{const c=map?map.getCenter():{lat:52, lng:19},u=`https://photon.komoot.io/api/?q=${encodeURIComponent(qt)}&limit=6&lat=${c.lat.toFixed(3)}&lon=${c.lng.toFixed(3)}&bbox=14.0,49.0,24.2,54.9`;
     const j=await tracked(fetch(u).then(r=>r.json()));if(run!==SQ)return;
     const ph=(j.features||[]).filter(f=>f.properties.countrycode==='PL').map(f=>{const p=f.properties,[lo,la]=f.geometry.coordinates,nm=[p.street||p.name,p.housenumber].filter(Boolean).join(' ')||p.name;
       return {t:p.housenumber?'a':'m3',tt:nm,st:[p.postcode,p.city||p.town||p.village||p.county,p.state].filter(Boolean).join(', ')+' · Photon/OSM',lon:lo,lat:la,z:p.housenumber||p.street?17:14};});
     renderRes([...ph,...out.filter(r=>!r.wait)].slice(0,14),q);}catch(e){if(run===SQ)renderRes(out.filter(r=>!r.wait),q);}}}
 function renderRes(r,q){SRES=r;SON=0;$('sres').innerHTML=r.length?r.map((x,i)=>`<div class="res${i===0?' on':''}" data-i="${i}"><span class="ic"${x.col?` style="background:${x.col};color:#fff"`:''}>${ICON[x.t]||'📍'}</span><div style="min-width:0"><div class="tt">${esc(x.tt)}</div><div class="st">${esc(x.st||'')}</div></div></div>`).join(''):`<div class="sempty">Brak wyników dla „${esc(q)}”. Spróbuj samej nazwy miejscowości lub ulicy.</div>`;}
-async function pickRes(i){const r=SRES[i];if(!r||r.wait)return;closeSearch();const z=r.z||15;map.setPadding({top:0,right:0,bottom:0,left:0});
+async function pickRes(i){const r=SRES[i];if(!r||r.wait)return;closeSearch();const z=r.z||15;if(!map){if(z>=16)await openAt(r.lon,r.lat,300/111320,false,true);else toast('Wybierz dokładny adres lub ulicę, aby otworzyć kartę budynku');return;}map.setPadding({top:0,right:0,bottom:0,left:0});
   map.easeTo({center:[r.lon,r.lat],zoom:z,duration:800,offset:MOBILE?[0,z>=16?-Math.round(innerHeight*0.33):-120]:[z>=16?-20:200,0]});
   if(z>=16){await new Promise(res=>map.once('moveend',res));await openAt(r.lon,r.lat,(r.t==='u'?300:150)/111320,false,true);}else if(st.rep)closeReport();}
 
@@ -555,23 +558,23 @@ async function pickRes(i){const r=SRES[i];if(!r||r.wait)return;closeSearch();con
 function setMode(m){st.mode=m;document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('body').classList.toggle('combo',m==='combo');
   if(m==='one'&&K()>1)st.sel=[st.sel[0]];if(m==='one'&&!K())st.sel=['any_locker'];document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();}
 let warned=false;
-function toggleNet(id){if(st.mode==='one')st.sel=[id];else{const i=st.sel.indexOf(id);if(i>=0)st.sel.splice(i,1);else{if(K()>=MAXSEL){toast(`Limit: ${MAXSEL} sieci naraz – usuń którąś, aby dodać „${NETS[id].short}”`);return false;}
-    if(st.req[id]==null)st.req[id]=logicState()!=='any';st.sel.push(id);if(K()>8&&MOBILE&&!warned){warned=true;toast('Dużo sieci – pierwsze liczenie dla całej Polski potrwa dłużej');}}}
+function toggleNet(id){if(st.mode==='one')st.sel=[id];else{const i=st.sel.indexOf(id);if(i>=0)st.sel.splice(i,1);else{if(K()>=MAXSEL){toast(`Limit: ${MAXSEL} usług naraz – usuń którąś, aby dodać „${NETS[id].short}”`);return false;}
+    if(st.req[id]==null)st.req[id]=logicState()!=='any';st.sel.push(id);if(K()>8&&MOBILE&&!warned){warned=true;toast('Wiele usług – pierwsze liczenie dla całej Polski potrwa dłużej');}}}
   document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();return true;}
 function applyPreset(p){st.mode='combo';document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m==='combo'));$('body').classList.add('combo');
   st.sel=p.sel.map(s=>s[0]).filter(id=>NETS[id]);p.sel.forEach(([id,m,d])=>{if(NETS[id]){st.th[id]=m;st.dir[id]=d==='near'?'near':'far';st.req[id]=p.mode!=='any';}});
   st.pc=p.price&&CFG.price?{on:true,op:p.price[0],v:p.price[1]}:{...st.pc,on:false};const go=()=>{document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('on',b.dataset.p===p.id));selChanged();};
   if(st.pc.on)loadPrice().then(go,go);else go();}
-function pickBtn(){const b=$('pickBtn');if(st.mode==='one'&&K()){const n=NETS[st.sel[0]];b.innerHTML=`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span><span class="pt">Sieć: ${esc(n.short)}</span><span class="pv">zmień ▾</span>`;}
-  else b.innerHTML=`<span style="color:var(--acc);font-size:18px;line-height:1">＋</span><span class="pt">${K()?`Sieci: ${K()} z ${MAXSEL} – dodaj lub usuń`:'Wybierz sieci do połączenia'}</span><span class="pv">▾</span>`;}
+function pickBtn(){const b=$('pickBtn');if(st.mode==='one'&&K()){const n=NETS[st.sel[0]];b.innerHTML=`<span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span><span class="pt">Usługa: ${esc(n.short)}</span><span class="pv">zmień ▾</span>`;}
+  else b.innerHTML=`<span style="color:var(--acc);font-size:18px;line-height:1">＋</span><span class="pt">${K()?`Usługi: ${K()} z ${MAXSEL} – dodaj lub usuń`:'Dodaj usługi do porównania'}</span><span class="pv">▾</span>`;}
 function selChanged(){st.ctop=null;document.querySelectorAll('#nets .chip,#plist .chip').forEach(b=>{const on=st.sel.includes(b.dataset.n);b.classList.toggle('on',on);b.classList.toggle('off',st.mode==='combo'&&!on&&K()>=MAXSEL);b.setAttribute('aria-pressed',on);});
-  $('netT').textContent=st.mode==='one'?'Wybierz sieć':`Wybierz sieci do połączenia · ${K()}/${MAXSEL}`;$('clear').hidden=st.mode!=='combo'||!K();pickBtn();pinfo();
+  $('netT').textContent=st.mode==='one'?'Wybierz usługę':`Dodaj usługi do porównania · ${K()}/${MAXSEL}`;$('clear').hidden=st.mode!=='combo'||!K();pickBtn();pinfo();
   const ls=logicState();document.querySelectorAll('#logic button').forEach(b=>b.classList.toggle('on',b.dataset.l===ls));$('logic').hidden=K()<2;
-  $('logicH').hidden=K()<2;$('logicH').textContent=ls==='all'?'Budynek musi spełnić wszystkie warunki. Przełącz „musi”/„lub” przy sieci, aby mieszać.':ls==='any'?'Wystarczy jeden z warunków.':'Muszą być spełnione warunki „musi” oraz co najmniej jeden z „lub”.';
-  renderSel();st.sel.forEach(id=>poi(id).then(redraw,()=>{}));
+  $('logicH').hidden=K()<2;$('logicH').textContent=ls==='all'?'Budynek musi spełnić wszystkie warunki. Przełącz „wymagany”/„lub” przy usłudze, aby mieszać.':ls==='any'?'Wystarczy jeden z warunków.':'Muszą być spełnione warunki „wymagany” oraz co najmniej jeden z „lub”.';
+  renderSel();updateSummary();st.sel.forEach(id=>poi(id).then(redraw,()=>{}));
   $('poiCnt').textContent=K()?fmt(st.sel.reduce((s,id)=>s+NETS[id].points,0)):'';$('poiDot').style.background=K()?NETS[st.sel[0]].fill:'#ccc';
-  $('legT').textContent=!K()?'':K()===1?'Odległość piesza do: '+NETS[st.sel[0]].label:'Kolor: odległość do: '+NETS[st.sel[0]].short+' (stuknij nazwę innej sieci, by zmienić)';
-  srcBox();if(st.rep)report(st.rep.b);else redraw();stats();urlSave();}
+  $('legT').textContent=!K()?'':K()===1?'Odległość piesza do: '+NETS[st.sel[0]].label:'Kolor: odległość do: '+NETS[st.sel[0]].short+' (stuknij nazwę innej usługi, by zmienić)';
+  updateMapKey();srcBox();if(st.rep)report(st.rep.b);else redraw();stats();urlSave();}
 const vtxt=id=>(isNear(id)?'< ':'≥ ')+fkm(st.th[id]);
 const PCMIN=3000,PCMAX=25000;
 function pcRow(){if(!CFG.price||!K())return '';const P=CFG.price;if(!st.pc.on)return `<button class="addpc" id="pcAdd">＋ Warunek: cena mieszkań (zł/m²)</button>`;
@@ -584,22 +587,25 @@ function pcBind(el){const a=el.querySelector('#pcAdd');if(a)a.onclick=()=>{st.pc
   const o=el.querySelector('#pcOp');if(o)o.onclick=()=>{st.pc.op=st.pc.op==='lt'?'ge':'lt';unPreset();selChanged();};
   const s=el.querySelector('#pcS');if(s)s.addEventListener('input',()=>{st.pc.v=+s.value;$('pcV').textContent=(st.pc.op==='lt'?'< ':'≥ ')+fmt(st.pc.v)+' zł/m²';unPreset();redraw();clearTimeout(scanT);scanT=setTimeout(()=>{if(SCAN.key===scanKey()&&SCAN.done>=SCAN.total)computeCombo();else stats();},40);urlSave();});}
 const unPreset=()=>document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));
-function renderSel(){const el=$('sel');if(!K()){el.innerHTML=`<div class="hint">${MOBILE?'Stuknij przycisk powyżej':'Wybierz sieci z listy poniżej'} albo gotowy zestaw.</div>`;return;}
+function renderSel(){const el=$('sel');if(!K()){el.innerHTML=`<div class="hint">${MOBILE?'Stuknij przycisk powyżej':'Wybierz usługi'} albo gotowy zestaw.</div>`;return;}
   const cb=st.mode==='combo'&&K()>1;
-  el.innerHTML=st.sel.map((id,j)=>{const n=NETS[id];return `<div class="selrow"><div class="slh"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${cb?`<button class="t" data-f="${id}" title="Koloruj mapę wg tej sieci">${esc(n.short)}${j===0?' 🎨':''}</button>`:`<span class="t">${K()>1?'':'Min. odległość do: '}${esc(n.short)}</span>`}<span class="v">${vtxt(id)}</span>${st.mode==='combo'?`<button class="x" data-x="${id}" aria-label="Usuń ${esc(n.short)}">×</button>`:''}</div>
-    ${st.mode==='combo'?`<div class="rc"><button class="mini${isNear(id)?' near':''}" data-d="${id}">${isNear(id)?'blisko (bliżej niż)':'daleko (dalej niż)'} ⇄</button>${cb?`<button class="mini${isReq(id)?'':' opt'}" data-r="${id}">${isReq(id)?'musi':'lub'} ⇄</button>`:''}</div>`:''}
-    <input type="range" min="0" max="1000" step="1" value="${m2s(st.th[id],n.max)}" data-s="${id}" aria-label="Próg odległości do: ${esc(n.short)}"></div>`;}).join('')+(K()>1?'':`<div class="hint" style="display:flex;justify-content:space-between;margin-top:0"><span>0</span><span>${fkm(NETS[st.sel[0]].max/4)}</span><span>${fkm(NETS[st.sel[0]].max)}</span></div>`)+pcRow();pcBind(el);
-  el.querySelectorAll('input[type=range][data-s]').forEach(s=>s.addEventListener('input',()=>{const id=s.dataset.s,n=NETS[id];st.th[id]=dec(enc(s2m(+s.value,n.max)));s.closest('.selrow').querySelector('.v').textContent=vtxt(id);
+  el.innerHTML=st.sel.map((id,j)=>{const n=NETS[id];return `<div class="selrow"><div class="slh"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${cb?`<button class="t" data-f="${id}" title="Koloruj mapę wg tej usługi">${esc(n.short)}${j===0?' 🎨':''}</button>`:`<span class="t">${K()>1?'':'Odległość do: '}${esc(n.short)}</span>`}<span class="v">${vtxt(id)}</span>${st.mode==='combo'?`<button class="x" data-x="${id}" aria-label="Usuń ${esc(n.short)}">×</button>`:''}</div>
+    <div class="rc"><button class="mini${isNear(id)?' near':''}" data-d="${id}">${isNear(id)?'blisko (bliżej niż)':'daleko (dalej niż)'} ⇄</button>${cb?`<button class="mini${isReq(id)?'':' opt'}" data-r="${id}">${isReq(id)?'wymagany':'lub'} ⇄</button>`:''}</div>
+    <input type="range" min="0" max="1000" step="1" value="${m2s(st.th[id],n.max)}" data-s="${id}" aria-label="Próg odległości do: ${esc(n.short)}"><div class="distance-entry"><label>Dokładny próg <input type="number" min="0" max="${n.max}" step="20" value="${st.th[id]}" data-meters="${id}" aria-label="Odległość w metrach: ${esc(n.short)}"> m</label><div>${[500,1000,2000].map(v=>`<button data-distance="${v}" data-service="${id}">${fkm(v)}</button>`).join('')}</div></div></div>`;}).join('')+(K()>1?'':`<div class="hint" style="display:flex;justify-content:space-between;margin-top:0"><span>0</span><span>${fkm(NETS[st.sel[0]].max/4)}</span><span>${fkm(NETS[st.sel[0]].max)}</span></div>`)+pcRow();pcBind(el);
+  el.querySelectorAll('input[type=range][data-s]').forEach(s=>s.addEventListener('input',()=>{const id=s.dataset.s,n=NETS[id];st.th[id]=dec(enc(s2m(+s.value,n.max)));s.closest('.selrow').querySelector('.v').textContent=vtxt(id);s.closest('.selrow').querySelector('[data-meters]').value=st.th[id];
     document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));redraw();if(K()===1&&!isNear(st.sel[0]))stats();else{clearTimeout(scanT);scanT=setTimeout(()=>{if(SCAN.key===scanKey()&&SCAN.done>=SCAN.total)computeCombo();else stats();},40);}urlSave();}));
+  const setDistance=(id,value)=>{if(!Number.isFinite(value))return;st.th[id]=dec(enc(Math.max(0,Math.min(NETS[id].max,value))));unPreset();selChanged();};
+  el.querySelectorAll('[data-meters]').forEach(e=>e.onchange=()=>setDistance(e.dataset.meters,Number(e.value)));
+  el.querySelectorAll('[data-distance]').forEach(e=>e.onclick=()=>setDistance(e.dataset.service,Number(e.dataset.distance)));
   el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>toggleNet(b.dataset.x));
   const un=()=>document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));
   el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const id=b.dataset.d;st.dir[id]=isNear(id)?'far':'near';un();selChanged();});
   el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const id=b.dataset.r;st.req[id]=!isReq(id);un();selChanged();});
   el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const id=b.dataset.f,i=st.sel.indexOf(id);if(i>0){st.sel.splice(i,1);st.sel.unshift(id);selChanged();}});}
 // ---------- wybór sieci (pełnoekranowy na telefonie) ----------
-function pinfo(){const e=$('pinfo');if(e)e.textContent=st.mode==='one'?'Stuknij sieć, aby ją pokazać na mapie.':`Wybrane: ${K()} z ${MAXSEL}. Stuknij, aby dodać lub usunąć, potem „Gotowe”.`;}
-function openPicker(){$('picker').classList.add('on');$('pq').value='';filterPicker('');pinfo();$('plist').scrollTop=0;if(!MOBILE)setTimeout(()=>$('pq').focus(),30);history.pushState({pk:1},'');}
-function closePicker(back){if(!$('picker').classList.contains('on'))return;$('picker').classList.remove('on');if(!back&&history.state&&history.state.pk)history.back();}
+function pinfo(){const e=$('pinfo');if(e)e.textContent=st.mode==='one'?'Wybierz usługę, aby ją pokazać na mapie.':`Wybrane: ${K()} z ${MAXSEL}. Stuknij, aby dodać lub usunąć, potem „Gotowe”.`;}
+function openPicker(){$('picker').classList.add('on');$('pq').value='';filterPicker('');pinfo();$('plist').scrollTop=0;setTimeout(()=>$('pq').focus(),30);history.pushState({pk:1},'');}
+function closePicker(back){if(!$('picker').classList.contains('on'))return;$('picker').classList.remove('on');$('pickBtn').focus();if(!back&&history.state&&history.state.pk)history.back();}
 function filterPicker(q){const t=norm(q).trim();document.querySelectorAll('#plist .pcat').forEach(c=>{let any=0;c.querySelectorAll('.chip').forEach(b=>{const n=NETS[b.dataset.n],ok=!t||norm(n.label+' '+n.short+' '+n.id).includes(t);b.hidden=!ok;if(ok)any++;});c.hidden=!any;});}
 function buildPicker(){$('plist').innerHTML=CFG.categories.map(c=>`<div class="pcat" id="pc_${c.id}"><div class="cath">${esc(c.label)}</div><div class="grid">${CFG.networks.filter(n=>n.cat===c.id).map(n=>`<button class="chip${n.combined?' comb':''}" data-n="${n.id}"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${esc(n.short)}<span class="ck">✓</span></button>`).join('')}</div></div>`).join('');
   $('ptabs').innerHTML=CFG.categories.map(c=>`<button data-c="${c.id}">${esc(c.label)}</button>`).join('');
@@ -610,31 +616,30 @@ function buildPicker(){$('plist').innerHTML=CFG.categories.map(c=>`<div class="p
   addEventListener('popstate',()=>closePicker(true));$('pickBtn').onclick=openPicker;}
 // ---------- arkusz na telefonie: przeciąganie uchwytu, stuknięcie przełącza ----------
 function sheet(){const P=$('panel'),G=$('grab');let y0=0,h0=0,drag=false,moved=false;
-  const snaps=()=>[310,Math.round(innerHeight*.55),Math.round(innerHeight*.88)];
-  const setH=h=>{P.style.height=h+'px';P.classList.toggle('open',h>320);};
+  const snaps=()=>[350,Math.round(innerHeight*.55),Math.round(innerHeight*.88)];
+  const setH=h=>{P.style.height=h+'px';P.classList.toggle('open',h>360);};
   G.addEventListener('touchstart',e=>{y0=e.touches[0].clientY;h0=P.getBoundingClientRect().height;drag=true;moved=false;P.classList.add('drag');},{passive:true});
   G.addEventListener('touchmove',e=>{if(!drag)return;const dy=y0-e.touches[0].clientY;if(Math.abs(dy)>6)moved=true;if(moved)P.style.height=Math.max(140,Math.min(innerHeight*.92,h0+dy))+'px';e.preventDefault();},{passive:false});
   G.addEventListener('touchend',()=>{if(!drag)return;drag=false;P.classList.remove('drag');if(!moved)return;const h=P.getBoundingClientRect().height;setH(snaps().reduce((a,v)=>Math.abs(v-h)<Math.abs(a-h)?v:a));});
-  G.onclick=()=>{if(moved){moved=false;return;}const s=snaps(),h=P.getBoundingClientRect().height;setH(h>320?s[0]:s[2]);};}
+  G.onclick=()=>{if(moved){moved=false;return;}const s=snaps(),h=P.getBoundingClientRect().height;setH(h>360?s[0]:s[2]);};}
 function srcBox(){const li=n=>`<li><b>${esc(n.label)}</b>${n.source_kind==='OSM'?'<span class="tag osm">OSM</span>':n.source_kind?`<span class="tag">${esc(n.source_kind)}</span>`:''}<br>${esc(n.source)} · ${fmt(n.points)} pkt · stan ${esc(n.source_date)}</li>`;
   $('srcBox').innerHTML=`<div class="lab">Źródła</div><ul class="src">${st.sel.map(id=>li(NETS[id])).join('')}</ul><details><summary>Wszystkie warstwy (${CFG.networks.length})</summary><ul class="src">${CFG.networks.filter(n=>!st.sel.includes(n.id)).map(li).join('')}</ul></details>`;}
-function urlSave(){const u=new URL(location.href);if(K()){u.searchParams.set('s',st.sel.join(','));u.searchParams.set('t',st.sel.map(id=>st.th[id]).join(','));}else{u.searchParams.delete('s');u.searchParams.delete('t');}
+function urlSave(){updateSummary();const u=new URL(location.href);if(K()){u.searchParams.set('s',st.sel.join(','));u.searchParams.set('t',st.sel.map(id=>st.th[id]).join(','));}else{u.searchParams.delete('s');u.searchParams.delete('t');}
   u.searchParams.delete('l');if($('lyC')&&$('lyC').checked)u.searchParams.set('ly','c');else u.searchParams.delete('ly');const cb=st.mode==='combo',d=st.sel.map(id=>isNear(id)?'n':'f').join(''),r=st.sel.map(id=>isReq(id)?'m':'l').join('');
-  if(cb&&/n/.test(d))u.searchParams.set('d',d);else u.searchParams.delete('d');if(cb&&K()>1&&/l/.test(r))u.searchParams.set('r',r);else u.searchParams.delete('r');if(cb&&K()===1)u.searchParams.set('m','c');else u.searchParams.delete('m');if(st.pc.on&&K())u.searchParams.set('pc',st.pc.op+st.pc.v);else u.searchParams.delete('pc');history.replaceState(history.state,'',u);}
-function buildUI(){CFG.networks.forEach(n=>{NETS[n.id]=n;st.th[n.id]=n.id==='przystanek'||n.id==='rower'?1000:n.id==='poz'||n.id==='szkola'||n.id==='przystanek_kolejowy'?3000:n.max>=50000?10000:2000;});
+  if(/n/.test(d))u.searchParams.set('d',d);else u.searchParams.delete('d');if(cb&&K()>1&&/l/.test(r))u.searchParams.set('r',r);else u.searchParams.delete('r');if(cb&&K()===1)u.searchParams.set('m','c');else u.searchParams.delete('m');if(st.pc.on&&K())u.searchParams.set('pc',st.pc.op+st.pc.v);else u.searchParams.delete('pc');history.replaceState(history.state,'',u);}
+function buildUI(){$('dataDate').textContent='Stan danych: '+CFG.date;CFG.networks.forEach(n=>{NETS[n.id]=n;st.th[n.id]=n.id==='przystanek'||n.id==='rower'?1000:n.id==='poz'||n.id==='szkola'||n.id==='przystanek_kolejowy'?3000:n.max>=50000?10000:2000;});
   POPLUT=new Float32Array(128);for(let c=0;c<128;c++)POPLUT[c]=c?Math.expm1(c/CFG.popk):0;
-  $('nets').innerHTML=`<div class="nf"><input id="nq" type="search" placeholder="Szukaj wśród ${CFG.networks.length} sieci…" autocomplete="off"><div class="ntabs" id="ntabs"><button data-c="" class="on">Wszystkie</button>${CFG.categories.map(c=>`<button data-c="${c.id}">${esc(c.label)}</button>`).join('')}</div></div>`+CFG.categories.map(c=>`<div class="ncat" data-c="${c.id}"><div class="cath">${esc(c.label)}</div><div class="grid">${CFG.networks.filter(n=>n.cat===c.id).map(n=>`<button class="chip${n.combined?' comb':''}" data-n="${n.id}" title="${esc(n.label)} · ${fmt(n.points)} pkt"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${esc(n.short)}<span class="ck">✓</span></button>`).join('')}</div></div>`).join('');
+  $('nets').innerHTML=`<div class="nf"><input id="nq" type="search" placeholder="Szukaj wśród ${CFG.networks.length} usług…" autocomplete="off"><div class="ntabs" id="ntabs"><button data-c="" class="on">Wszystkie</button>${CFG.categories.map(c=>`<button data-c="${c.id}">${esc(c.label)}</button>`).join('')}</div></div>`+CFG.categories.map(c=>`<div class="ncat" data-c="${c.id}"><div class="cath">${esc(c.label)}</div><div class="grid">${CFG.networks.filter(n=>n.cat===c.id).map(n=>`<button class="chip${n.combined?' comb':''}" data-n="${n.id}" title="${esc(n.label)} · ${fmt(n.points)} pkt"><span class="dot" style="background:${n.fill};box-shadow:0 0 0 1.5px ${n.line} inset"></span>${esc(n.short)}<span class="ck">✓</span></button>`).join('')}</div></div>`).join('');
   document.querySelectorAll('#nets .chip').forEach(b=>b.onclick=()=>toggleNet(b.dataset.n));
   let ncat='';const nfilt=()=>{const t=norm($('nq').value).trim();document.querySelectorAll('#nets .ncat').forEach(c=>{let any=0;c.querySelectorAll('.chip').forEach(b=>{const n=NETS[b.dataset.n],ok=(!ncat||ncat===c.dataset.c||t)&&(!t||norm(n.label+' '+n.short+' '+n.id+' '+(n.types||[]).join(' ')).includes(t));b.hidden=!ok;if(ok)any++;});c.hidden=!any;});};
   $('nq').addEventListener('input',nfilt);$('ntabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;ncat=b.dataset.c;document.querySelectorAll('#ntabs button').forEach(x=>x.classList.toggle('on',x===b));nfilt();};
-  $('presets').innerHTML=CFG.presets.map(p=>`<button class="preset" data-p="${p.id}" title="${esc(p.sel.filter(([id])=>NETS[id]).map(([id,m,d])=>NETS[id].short+(d==='near'?' < ':' ≥ ')+fkm(m)).join(p.mode==='any'?' lub ':', ')+(p.price?`, cena ${p.price[0]==='lt'?'<':'≥'} ${fmt(p.price[1])} zł/m²`:''))}">${esc(p.label)}</button>`).join('');
-  document.querySelectorAll('.preset').forEach(b=>b.onclick=()=>applyPreset(CFG.presets.find(p=>p.id===b.dataset.p)));
+  buildPresets();
   document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
   document.querySelectorAll('#logic button').forEach(b=>b.onclick=()=>{st.sel.forEach(id=>st.req[id]=b.dataset.l==='all');document.querySelectorAll('.preset').forEach(p=>p.classList.remove('on'));selChanged();});
   $('clear').onclick=()=>{st.sel=[];selChanged();};
   document.querySelectorAll('#unit button').forEach(b=>{b.classList.toggle('on',b.dataset.u===st.unit);b.onclick=()=>{if(b.disabled)return;st.unit=b.dataset.u;document.querySelectorAll('#unit button').forEach(x=>x.classList.toggle('on',x===b));stats();};});
   const S=CFG.stats||{},g=(k,f='people')=>S[k]?fbig(S[k][f]):'–';
-  $('about').innerHTML=`<div class="lab">Metoda</div>${esc(CFG.method)}<br><br><b>Ludność:</b> ${fmt(CFG.pop.all)} osób z obwodów spisowych GUS NSP 2021 rozdzielonych na budynki mieszkalne proporcjonalnie do powierzchni × liczby kondygnacji (BDOT10k) – szacunek.<br><br><b>W skrócie:</b> ${g('poz>3000m')} osób ma ponad 3 km do przychodni POZ; ${g('przystanek_kolejowy>3000m')} ponad 3 km do przystanku kolejowego; ${g('any_locker>2000m')} ponad 2 km do automatu paczkowego; ${g('wykluczenie_all3')} jest jednocześnie daleko od szkoły (3 km), POZ (5 km) i przystanku (1 km).<br><br>${CFG.price?`<b>Ceny mieszkań:</b> mediana zł/m² z ${fmt(CFG.price.used)} transakcji lokalami mieszkalnymi (wolny rynek, jeden lokal w akcie; ${pmon(CFG.price.period[0])} – ${pmon(CFG.price.period[1])}) z Rejestru Cen Nieruchomości GUGiK (otwarte dane), w siatce ~1 km i ~5 km; komórki z mniej niż ${CFG.price.min_n} transakcjami są ukryte. Dane z ${CFG.price.powiaty_with_tx} powiatów.<br><br>`:''}Budynki i drogi: BDOT10k (GUGiK). Podkład © CARTO, © OpenStreetMap. Opis źródeł i kod: README w repozytorium. Stan danych: ${CFG.date}.`;}
+  $('about').innerHTML=`<div class="lab">Metoda</div>${esc(CFG.method.replaceAll('sieci dróg','drogach'))}<br><br><b>Ludność:</b> ${fmt(CFG.pop.all)} osób z obwodów spisowych GUS NSP 2021 rozdzielonych na budynki mieszkalne proporcjonalnie do powierzchni × liczby kondygnacji (BDOT10k) – szacunek.<br><br><b>W skrócie:</b> ${g('poz>3000m')} osób ma ponad 3 km do przychodni POZ; ${g('przystanek_kolejowy>3000m')} ponad 3 km do przystanku kolejowego; ${g('any_locker>2000m')} ponad 2 km do automatu paczkowego; ${g('wykluczenie_all3')} jest jednocześnie daleko od szkoły (3 km), POZ (5 km) i przystanku (1 km).<br><br>${CFG.price?`<b>Ceny mieszkań:</b> mediana zł/m² z ${fmt(CFG.price.used)} transakcji lokalami mieszkalnymi (wolny rynek, jeden lokal w akcie; ${pmon(CFG.price.period[0])} – ${pmon(CFG.price.period[1])}) z Rejestru Cen Nieruchomości GUGiK (otwarte dane), w siatce ~1 km i ~5 km; komórki z mniej niż ${CFG.price.min_n} transakcjami są ukryte. Dane z ${CFG.price.powiaty_with_tx} powiatów.<br><br>`:''}Budynki i drogi: BDOT10k (GUGiK). Podkład © CARTO, © OpenStreetMap. Opis źródeł i kod: README w repozytorium. Stan danych: ${CFG.date}.`;}
 function initMap(){map=new maplibregl.Map({container:'map',style:STY[st.theme],center:[19.3,52.0],zoom:MOBILE?4.9:5.9,minZoom:4.3,maxZoom:18,attributionControl:{compact:true},hash:true,dragRotate:false,pitchWithRotate:false});
   map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-right');map.addControl(new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true},fitBoundsOptions:{maxZoom:15}}),'top-right');
   if(!MOBILE)map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');map.touchZoomRotate.disableRotation();
@@ -647,7 +652,7 @@ function initMap(){map=new maplibregl.Map({container:'map',style:STY[st.theme],c
     let b=await building(e.lngLat.lng,e.lngLat.lat,maxDeg,true).catch(()=>null);if(!b)b=await building(e.lngLat.lng,e.lngLat.lat,Math.max(80,mpp*16)/111320,false,map.getZoom()>=BZ).catch(()=>null);
     if(!b){if(st.rep)closeReport();return;}report(b);});
   map.on('style.load',()=>{symId=null;const s=map.getStyle();for(const l of (s&&s.layers)||[]){if(l.type==='symbol'&&l.layout&&l.layout['text-field']){try{map.setLayoutProperty(l.id,'text-field',['coalesce',['get','name'],['get','name_en']]);}catch(e){}}}redraw();});}
-$('mtheme').onclick=()=>$('theme').onclick();$('theme').onclick=()=>{st.theme=st.theme==='light'?'dark':'light';localStorage.setItem('jd-theme',st.theme);document.documentElement.classList.toggle('dark',st.theme==='dark');buildLUT();drawHist();if(PRICE)pcLegend();map.setStyle(STY[st.theme],{diff:false});};
+$('mtheme').onclick=()=>$('theme').onclick();$('theme').onclick=()=>{st.theme=st.theme==='light'?'dark':'light';localStorage.setItem('jd-theme',st.theme);document.documentElement.classList.toggle('dark',st.theme==='dark');buildLUT();if(HIST)drawHist();updateMapKey();if(PRICE)pcLegend();if(map)map.setStyle(STY[st.theme],{diff:false});};
 if(MOBILE)sheet();else $('grab').onclick=()=>$('panel').classList.toggle('open');
 ['lyB','lyU','lyP'].forEach(id=>$(id).addEventListener('change',redraw));
 function lyC(){const on=$('lyC').checked;$('pcLeg').hidden=!on;if(on)loadPrice().then(()=>{pcLegend();redraw();},()=>toast('Nie udało się wczytać cen'));else redraw();}
@@ -661,19 +666,21 @@ $('search').addEventListener('click',e=>{if(e.target.id==='search')closeSearch()
 let sqT=0;$('sq').addEventListener('input',()=>{clearTimeout(sqT);sqT=setTimeout(()=>doSearch($('sq').value),180);});
 $('sq').addEventListener('keydown',e=>{const n=SRES.length;if(e.key==='Escape')closeSearch();else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!n)return;SON=(SON+(e.key==='ArrowDown'?1:n-1))%n;document.querySelectorAll('.res').forEach((r,i)=>r.classList.toggle('on',i===SON));}else if(e.key==='Enter'){e.preventDefault();pickRes(SON);}});
 $('sres').addEventListener('click',e=>{const r=e.target.closest('.res');if(r)pickRes(+r.dataset.i);});
-document.addEventListener('keydown',e=>{const t=document.activeElement&&document.activeElement.tagName;if(e.key==='/'&&!$('search').classList.contains('on')&&t!=='INPUT'){e.preventDefault();openSearch();}else if(e.key==='Escape'&&st.rep&&!$('search').classList.contains('on'))closeReport();});
-(async()=>{window.__t0=performance.now();let got=0;const tick=x=>{got++;$('lp').style.width=(100*got/5)+'%';return x;};
-  try{CFG=await (await fetch('config.json')).json();tick();buildUI();buildPicker();
+document.addEventListener('keydown',e=>{const t=document.activeElement&&document.activeElement.tagName;if(e.key==='/'&&!$('search').classList.contains('on')&&t!=='INPUT'){e.preventDefault();openSearch();}else if(e.key==='Escape'&&$('picker').classList.contains('on'))closePicker();else if(e.key==='Escape'&&st.rep&&!$('search').classList.contains('on'))closeReport();});
+async function boot(){window.__t0=performance.now();let got=0;const tick=x=>{got++;$('lp').style.width=(100*got/5)+'%';return x;};
+  try{CFG=await fetchJson('config.json');tick();buildUI();buildPicker();
     const q=new URLSearchParams(location.search),qs=(q.get('s')||'').split(',').filter(id=>NETS[id]).slice(0,MAXSEL),qt=(q.get('t')||'').split(',').map(Number);
     qs.forEach((id,i)=>{if(qt[i]>=0&&isFinite(qt[i]))st.th[id]=qt[i];});const qd=q.get('d')||'',qr=q.get('r')||'';qs.forEach((id,i)=>{st.dir[id]=qd[i]==='n'?'near':'far';st.req[id]=q.get('l')==='any'?false:qr[i]!=='l';});
     const qpc=/^(lt|ge)(\d{3,6})$/.exec(q.get('pc')||'');if(qpc&&CFG.price)st.pc={on:true,op:qpc[1],v:Math.max(PCMIN,Math.min(PCMAX,+qpc[2]))};if(q.get('ly')==='c'&&CFG.price)$('lyC').checked=true;
     st.sel=qs.length?qs:['any_locker'];st.mode=st.sel.length>1||q.get('m')==='c'?'combo':'one';document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===st.mode));$('body').classList.toggle('combo',st.mode==='combo');
-    initMap();buildLUT();
+    renderSel();updateSummary();srcBox();pickBtn();loadStage='mapy i danych odległości';try{initMap();}catch(error){if(!/webgl/i.test(String(error)))throw error;map=null;showMapUnavailable();}buildLUT();
     const [h,u]=await Promise.all([fetchJson('hist.json').then(tick),fetchBin('unc.bin').then(tick),get('S:l0').then(tick),...st.sel.map(id=>get(`N:${id}/l0`)),poi(st.sel[0]).then(tick)]);
     if(st.pc.on||$('lyC').checked){await loadPrice().catch(()=>{});if($('lyC').checked){$('pcLeg').hidden=false;pcLegend();}}
     HIST=h;const un=new Uint32Array(u,0,1)[0];UNC={n:un,pos:new Float32Array(u,4,2*un),lo:new Uint32Array(u,4+8*un,un),hi:new Uint32Array(u,4+12*un,un),act:new Uint8Array(u,4+16*un,un),k:null};
-    const go=()=>{selChanged();const L=$('loader');L.style.opacity=0;setTimeout(()=>L.style.display='none',300);window.__ready=performance.now();};if(map.loaded()||map.isStyleLoaded())go();else map.once('load',go);}
-  catch(e){console.error(e);$('lt').textContent='Nie udało się wczytać danych. Odśwież stronę.';}})();
+    const go=()=>{selChanged();const L=$('loader');L.style.opacity=0;setTimeout(()=>L.style.display='none',300);window.__ready=performance.now();};go();}
+  catch(e){console.error(e);showLoadError(e);}}
+initUX();
+boot();
 </script>
 </body>
 </html>

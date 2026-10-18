@@ -1,0 +1,9 @@
+const {JSDOM}=require('jsdom'),fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const root=require('node:path').resolve(__dirname,'..')+'/';const html=fs.readFileSync(root+'index.html','utf8');
+const dom=new JSDOM(html,{url:'https://xoogklastry.github.io/jakdaleko/?s=zabka&t=800',runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window;
+w.matchMedia=()=>({matches:false});w.maplibregl={Map:class{constructor(){throw Error('Failed to initialize WebGL')}}};w.HTMLElement.prototype.scrollTo=function(){};
+w.fetch=async url=>{const p=root+url;if(!fs.existsSync(p))return {ok:false,status:404};const data=fs.readFileSync(p);return {ok:true,json:async()=>JSON.parse(data.toString()),arrayBuffer:async()=>data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength)};};
+w.Response=Response;w.Blob=Blob;w.DecompressionStream=DecompressionStream;
+const ctx=dom.getInternalVMContext();vm.runInContext(fs.readFileSync(root+'ui.js','utf8'),ctx);vm.runInContext(html.split("<script>\n'use strict';")[1].split('</script>')[0].replace(/\nboot\(\);/,''),ctx);
+(async()=>{await vm.runInContext('boot()',ctx);assert.ok(w.__ready);assert.match(w.document.getElementById('filterSummary').textContent,/800 m/);assert.notEqual(w.document.getElementById('cntB').textContent,'–');
+const result=await vm.runInContext('openAt(14.6537,53.36473,300/111320,false,true)',ctx);assert.ok(result);assert.equal(w.document.querySelectorAll('.daily-row').length,5);assert.equal(w.document.querySelectorAll('.daily-row[data-place]').length,5);console.log('PASS: full boot with real repository data, WebGL fallback, nationwide statistics, building report and 5 daily places.');console.log(w.document.getElementById('dailyPlaces').textContent);dom.window.close();})().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

@@ -1,0 +1,6 @@
+{
+  "name": "jakdaleko",
+  "private": true,
+  "scripts": {"test": "node tests/ui.cjs", "test:integration": "node tests/integration.cjs"},
+  "devDependencies": {"jsdom": "26.1.0"}
+}
